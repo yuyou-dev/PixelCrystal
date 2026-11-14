@@ -35,9 +35,16 @@
    - 合成刚玉室温 Sellmeier 色散系数参考 Malitson & Dodge (1972), *JOSA* `62`(11), 1405。
    - 石英旋光张量参考 Arteaga, Canillas & Jellison (2009), *Applied Optics* `48`(29), 5500。
    - 纯水密度温度公式参考 Tanaka et al. (2001), *Metrologia* `38`(4), 301。
+3. **像素点阵字体（V2 纯像素界面与纪念卡排版）**
+   - 字体名称：**Ark Pixel Font（方舟像素字体）12px Monospaced Simplified Chinese**（[`assets/ark-pixel-12px-zh.woff2`](../assets/ark-pixel-12px-zh.woff2)）
+   - 版权与作者：`Copyright (c) TakWolf (https://github.com/TakWolf/ark-pixel-font)`
+   - 许可协议：**SIL Open Font License 1.1 (OFL-1.1)**（许可证全文见 [`docs/OFL-ArkPixel.txt`](./OFL-ArkPixel.txt)）
 
 ---
 
-## 3. 商标与品牌声明
+## 3. 商标、品牌黑猫图标与交流群二维码声明
 
-`SUVA`、`苏哇科技`、`SUVA Tech`、`像素晶体`、`PixelCrystal` 为权利人持有的品牌及项目标识。本仓库公开源码仅供透明度审阅与个人学习体验，不构成任何商标授权或许可背书。如需商业合作、教学机构正式授权或展览定制，请通过 SUVA 官方渠道联系取得书面授权。
+- **官方团队**：**SUVA / 地质大学博士说AI / 苏哇科技 (SUVA Tech)**。
+- **品牌标识**：`SUVA`（正确拼写为 `SUVA`，不接受 `SUWA` 变体）、`苏哇科技`、`地质大学博士说AI`、像素化 **SUVA 黑猫图标**（`assets/suva-cat-pixel.svg` / `suva-cat-pixel.png`）及官方社群二维码（`assets/wecom-open-source-group.png`）均为权利人持有的品牌标识与官方联络入口。
+- 本仓库公开源码仅供个人透明度审阅与非商业学习体验，不构成任何商标授权、品牌背书或二次分发许可。如需商业合作、教学机构正式授权或展览定制，欢迎扫描仓库底部或游戏内的企业微信二维码联系取得书面授权。
+

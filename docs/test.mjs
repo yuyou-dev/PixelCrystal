@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// SUVA · 苏哇科技 · PixelCrystal Automated Physics, Geometry & Integrity Test Suite
+// SUVA · 苏哇科技 · PixelCrystal V2 Automated Physics, Geometry, Pure-Pixel & V1-Archive Test Suite
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -16,19 +16,22 @@ async function runTests() {
     console.log(`  [PASS] ${name}`);
   };
 
-  console.log('=== PixelCrystal · Physics, Polyhedra & Governance Verification ===');
+  console.log('=== PixelCrystal V2 · Physics, Polyhedra, Pure-Pixel & Governance Verification ===');
 
   const palette = await import('../src/palette.js');
+  const sprites = await import('../src/pixel-sprites.js');
   const optics = await import('../src/optics-core.js');
   const meshes = await import('../src/crystal-meshes.js');
   const data = await import('../src/game-data.js');
 
-  check('RISO_PALETTE & 5x7 pixel font loaded cleanly', () => {
+  check('RISO_PALETTE, 5x7 pixel font & V2 pixel-sprites loaded cleanly', () => {
     assert.equal(palette.RISO_PALETTE.lime, '#C6FF00');
     assert.equal(palette.RISO_PALETTE.pink, '#FF4D94');
     assert.equal(palette.RISO_PALETTE.blue, '#1F38FF');
     assert.equal(palette.BAYER_4X4.length, 4);
     assert.ok(palette.PIXEL_FONT_5X7['A']);
+    assert.ok(sprites.DOCK_SPRITES.HOME(24).includes('shape-rendering="crispEdges"'));
+    assert.ok(sprites.PIXEL_ICONS.gemPink100(16).includes('shape-rendering="crispEdges"'));
   });
 
   check('Optical materials cover isotropic, uniaxial (+/-), and biaxial (+/-)', () => {
@@ -130,6 +133,31 @@ async function runTests() {
     const endless = data.generateEndlessCase(42);
     assert.ok(codexIds.has(endless.truthMineralId));
     assert.ok(endless.suspectIds.includes(endless.truthMineralId));
+  });
+
+  check('SUVA Brand Assets (Pixel Black Cat + WeCom QR), Preserved V1, and V2 100% Pure Pixel Contract', () => {
+    for (const rel of [
+      'assets/ark-pixel-12px-zh.woff2',
+      'assets/suva-cat-pixel.svg',
+      'assets/suva-cat-pixel.png',
+      'assets/suva-cat-detective.svg',
+      'assets/wecom-open-source-group.png',
+      'docs/v1/index.html',
+      'docs/v1/main.js',
+    ]) {
+      const p = path.join(ROOT, rel);
+      assert.ok(fs.existsSync(p) && fs.statSync(p).size > 200, `Asset/Archive exists: ${rel}`);
+    }
+
+    const v2Html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const v2Main = fs.readFileSync(path.join(ROOT, 'src', 'main.js'), 'utf8');
+    assert.ok(v2Html.includes('ArkPixel12'), 'V2 loads ArkPixel12 bitmap font');
+    assert.ok(v2Html.includes('SUVA / 地质大学博士说AI / 苏哇科技'), 'V2 credits official SUVA team');
+    assert.ok(v2Html.includes('./v1/'), 'V2 links to preserved V1 archive');
+    assert.ok(v2Html.includes('mobileBottomDock'), 'V2 includes handheld 5-slot cartridge dock');
+    assert.ok(!v2Html.includes('PingFang SC') && !v2Html.includes('Microsoft YaHei'), 'V2 eliminates smooth system font stacks');
+    assert.ok(!v2Html.includes('<select') && !v2Main.includes('<select'), 'V2 eliminates native OS <select> menus');
+    assert.equal((v2Html + v2Main).match(/[\u{1F300}-\u{1FAFF}]/gu), null, 'V2 eliminates all Unicode pictographic emojis');
   });
 
   check('SUVA · 苏哇科技 Attribution & Restricted Source-Available License', () => {

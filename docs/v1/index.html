@@ -1,0 +1,1595 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>像素晶体 PIXEL CRYSTAL — SUVA · 苏哇科技 晶体光学像素街机</title>
+  <meta name="description" content="SUVA · 苏哇科技原创出品《像素晶体 PixelCrystal》— 融合三色孔版像素美学与线性晶体光学物理的宝石侦探与单形锻造街机游戏。" />
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg" />
+  <style>
+    :root {
+      --bg-page: #F2EDE2;
+      --bg-warm: #EAE3D3;
+      --bg-card: #FAF7F0;
+      --bg-elev: #FFFFFF;
+      --bg-inset: #E8E0CE;
+      --ink: #111118;
+      --ink-sub: #3A3D52;
+      --ink-muted: #686B82;
+      --border-ink: #111118;
+      --shadow-ink: #111118;
+      --dot-color: rgba(53, 84, 244, 0.20);
+
+      --riso-lime: #C6FF00;
+      --riso-pink: #FF4D94;
+      --riso-blue: #1F38FF;
+      --riso-cyan: #00E5FF;
+      --riso-amber: #FFB830;
+      --riso-coral: #FF785A;
+      --riso-emerald: #18D68C;
+
+      --font-sans: "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Microsoft YaHei", system-ui, sans-serif;
+      --font-mono: "JetBrains Mono", "SFMono-Regular", "Consolas", "Courier New", monospace;
+    }
+
+    body[data-theme="dark"] {
+      --bg-page: #0B0B14;
+      --bg-warm: #101223;
+      --bg-card: #14172B;
+      --bg-elev: #1B1F38;
+      --bg-inset: #0E1020;
+      --ink: #FAF7F0;
+      --ink-sub: #C5CBE6;
+      --ink-muted: #848CB0;
+      --border-ink: #38437A;
+      --shadow-ink: #05060C;
+      --dot-color: rgba(30, 58, 242, 0.32);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+      background-color: var(--bg-page);
+      background-image: radial-gradient(var(--dot-color) 1.25px, transparent 1.25px);
+      background-size: 14px 14px;
+      color: var(--ink);
+      font-family: var(--font-sans);
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    html:has(body[data-theme="dark"]) {
+      background-color: #0B0B14;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    canvas {
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      display: block;
+    }
+
+    button, input, select {
+      font: inherit;
+      color: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    /* ================= TOP ARCADE BAR ================= */
+    .arcade-topbar {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background: var(--bg-card);
+      border-bottom: 3px solid var(--ink);
+      box-shadow: 0 4px 0 rgba(17, 17, 24, 0.14);
+      padding: 8px 14px;
+    }
+
+    body[data-theme="dark"] .arcade-topbar {
+      border-bottom-color: var(--riso-lime);
+    }
+
+    .topbar-inner {
+      max-width: 1380px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px 12px;
+    }
+
+    .brand-plaque {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      background: #111118;
+      color: #FAF7F0;
+      border: 2px solid var(--riso-lime);
+      padding: 5px 10px;
+      box-shadow: 3px 3px 0 var(--riso-pink);
+      text-align: left;
+      transition: transform 0.08s ease;
+    }
+
+    .brand-plaque:active {
+      transform: translate(2px, 2px);
+    }
+
+    .brand-plaque svg {
+      flex-shrink: 0;
+    }
+
+    .brand-origin {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      color: var(--riso-lime);
+      line-height: 1.1;
+    }
+
+    .brand-name {
+      display: block;
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: 0.02em;
+      color: #FAF7F0;
+      line-height: 1.2;
+    }
+
+    .mode-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .mode-tab {
+      background: var(--bg-elev);
+      color: var(--ink);
+      border: 2px solid var(--ink);
+      padding: 6px 11px;
+      font-size: 13px;
+      font-weight: 800;
+      box-shadow: 2px 2px 0 var(--shadow-ink);
+      transition: transform 0.08s ease, background 0.12s ease;
+      white-space: nowrap;
+    }
+
+    body[data-theme="dark"] .mode-tab {
+      border-color: #4A5596;
+    }
+
+    .mode-tab:hover {
+      background: var(--riso-lime);
+      color: #111118;
+    }
+
+    .mode-tab.is-active {
+      background: var(--riso-blue);
+      color: #FAF7F0;
+      border-color: #111118;
+      box-shadow: 3px 3px 0 var(--riso-pink);
+    }
+
+    body[data-theme="dark"] .mode-tab.is-active {
+      border-color: var(--riso-lime);
+    }
+
+    .mode-tab .tab-num {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      opacity: 0.85;
+      margin-right: 3px;
+    }
+
+    .utility-cluster {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .rank-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #111118;
+      color: var(--riso-lime);
+      border: 2px solid #111118;
+      padding: 5px 9px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    body[data-theme="dark"] .rank-pill {
+      border-color: #38437A;
+    }
+
+    .rank-xp {
+      font-family: var(--font-mono);
+      color: var(--riso-cyan);
+      font-size: 11px;
+    }
+
+    .util-btn {
+      background: var(--bg-elev);
+      color: var(--ink);
+      border: 2px solid var(--ink);
+      padding: 5px 9px;
+      font-size: 12px;
+      font-weight: 800;
+      box-shadow: 2px 2px 0 var(--shadow-ink);
+      white-space: nowrap;
+    }
+
+    body[data-theme="dark"] .util-btn {
+      border-color: #4A5596;
+    }
+
+    .util-btn:hover {
+      background: var(--riso-amber);
+      color: #111118;
+    }
+
+    .util-btn.is-on {
+      background: var(--riso-lime);
+      color: #111118;
+      border-color: #111118;
+    }
+
+    .util-btn--pink {
+      background: var(--riso-pink);
+      color: #FAF7F0;
+      border-color: #111118;
+    }
+
+    /* ================= MAIN CONTAINER ================= */
+    .arcade-main {
+      flex: 1;
+      max-width: 1380px;
+      margin: 0 auto;
+      padding: 16px 14px 28px;
+      width: 100%;
+    }
+
+    /* ================= HOME CARTRIDGE VIEW ================= */
+    .home-hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr);
+      gap: 20px;
+      align-items: stretch;
+      background: var(--bg-card);
+      border: 3px solid var(--ink);
+      box-shadow: 7px 7px 0 var(--riso-pink), 3px 3px 0 #111118;
+      padding: 22px;
+      margin-bottom: 20px;
+    }
+
+    body[data-theme="dark"] .home-hero {
+      border-color: var(--riso-lime);
+    }
+
+    .hero-copy {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .riso-kicker {
+      display: inline-block;
+      align-self: flex-start;
+      background: var(--riso-lime);
+      color: #111118;
+      border: 2px solid #111118;
+      box-shadow: 3px 3px 0 #111118;
+      padding: 3px 10px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.06em;
+    }
+
+    .riso-hero-title {
+      margin: 2px 0 0;
+      font-size: clamp(36px, 5vw, 58px);
+      font-weight: 900;
+      line-height: 1.04;
+      letter-spacing: 0.03em;
+      color: var(--ink);
+      text-shadow: -3px -2px 0 var(--riso-pink), 3px 3px 0 var(--riso-cyan);
+    }
+
+    .riso-hero-en {
+      font-family: var(--font-mono);
+      font-size: clamp(14px, 2vw, 19px);
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      color: var(--riso-blue);
+      margin-top: 4px;
+    }
+
+    body[data-theme="dark"] .riso-hero-en {
+      color: var(--riso-cyan);
+    }
+
+    .suva-origin-strip {
+      display: inline-flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      background: #111118;
+      color: #FAF7F0;
+      border: 2px solid var(--riso-blue);
+      padding: 6px 11px;
+      font-size: 12px;
+      font-weight: 800;
+      align-self: flex-start;
+    }
+
+    .suva-origin-strip strong {
+      color: var(--riso-lime);
+    }
+
+    .hero-slogans {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .slogan-bar {
+      padding: 6px 11px;
+      font-size: 13px;
+      font-weight: 800;
+      border: 2px solid #111118;
+      align-self: flex-start;
+    }
+
+    .slogan-bar--dark {
+      background: #111118;
+      color: #FAF7F0;
+    }
+
+    .slogan-bar--light {
+      background: #FAF7F0;
+      color: #111118;
+    }
+
+    .hero-cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .cta-primary {
+      background: var(--riso-lime);
+      color: #111118;
+      border: 3px solid #111118;
+      box-shadow: 5px 5px 0 #111118;
+      padding: 11px 18px;
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 0.02em;
+      transition: transform 0.08s ease;
+    }
+
+    .cta-primary:hover {
+      background: #d8ff4d;
+    }
+
+    .cta-primary:active {
+      transform: translate(3px, 3px);
+      box-shadow: 2px 2px 0 #111118;
+    }
+
+    .cta-secondary {
+      background: var(--riso-blue);
+      color: #FAF7F0;
+      border: 3px solid #111118;
+      box-shadow: 5px 5px 0 var(--riso-pink);
+      padding: 11px 16px;
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    /* Perforated Stamp Mode Cards Grid */
+    .home-mode-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .stamp-mode-card {
+      position: relative;
+      background: var(--bg-card);
+      border: 3px dashed var(--ink);
+      box-shadow: 5px 5px 0 var(--shadow-ink);
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 10px;
+      text-align: left;
+      transition: transform 0.1s ease, border-color 0.1s ease;
+      min-width: 0;
+    }
+
+    body[data-theme="dark"] .stamp-mode-card {
+      border-color: var(--riso-cyan);
+    }
+
+    .stamp-mode-card:hover {
+      transform: translate(-2px, -2px);
+      border-style: solid;
+      border-color: var(--riso-pink);
+    }
+
+    .stamp-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .stamp-no {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 900;
+      padding: 2px 8px;
+      background: #111118;
+      color: var(--riso-lime);
+    }
+
+    .stamp-tag {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 800;
+      padding: 2px 7px;
+      border: 1.5px solid #111118;
+      color: #111118;
+    }
+
+    .stamp-mode-card h3 {
+      margin: 4px 0 2px;
+      font-size: 17px;
+      font-weight: 900;
+    }
+
+    .stamp-mode-card p {
+      margin: 0;
+      font-size: 12.5px;
+      color: var(--ink-sub);
+    }
+
+    .stamp-enter {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 900;
+      color: var(--riso-blue);
+    }
+
+    body[data-theme="dark"] .stamp-enter {
+      color: var(--riso-lime);
+    }
+
+    /* ================= WORKBENCH 2-COLUMN GRID ================= */
+    .workbench-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .stage-column {
+      position: sticky;
+      top: 68px;
+      min-width: 0;
+    }
+
+    .deck-column {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* ================= SHARED 480x270 PIXEL STAGE CARD ================= */
+    .pixel-stage-card {
+      background: var(--bg-card);
+      border: 3px solid var(--ink);
+      box-shadow: 5px 5px 0 var(--shadow-ink);
+      padding: 10px;
+      min-width: 0;
+    }
+
+    body[data-theme="dark"] .pixel-stage-card {
+      border-color: #4A5596;
+    }
+
+    .stage-screen-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #0B0B14;
+      border: 2px solid #111118;
+      overflow: hidden;
+      touch-action: none;
+      user-select: none;
+    }
+
+    #pixelCanvas {
+      width: 100%;
+      height: 100%;
+      cursor: grab;
+    }
+
+    #pixelCanvas:active {
+      cursor: grabbing;
+    }
+
+    .face-hud-chip {
+      position: absolute;
+      left: 10px;
+      bottom: 26px;
+      background: rgba(17, 17, 24, 0.92);
+      color: var(--riso-lime);
+      border: 2px solid var(--riso-lime);
+      padding: 4px 9px;
+      font-size: 12px;
+      font-weight: 800;
+      pointer-events: none;
+      max-width: calc(100% - 20px);
+    }
+
+    .stamp-slam-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .stamp-slam-box {
+      background: var(--riso-pink);
+      color: #FAF7F0;
+      border: 4px solid #111118;
+      box-shadow: 6px 6px 0 #111118;
+      padding: 10px 22px;
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      transform: rotate(-8deg) scale(1);
+      animation: slamPop 0.28s cubic-bezier(0.2, 1.4, 0.4, 1);
+    }
+
+    .stamp-slam-box.is-wrong {
+      background: #111118;
+      color: var(--riso-amber);
+      border-color: var(--riso-pink);
+    }
+
+    @keyframes slamPop {
+      0% { transform: rotate(-16deg) scale(2.1); opacity: 0; }
+      100% { transform: rotate(-8deg) scale(1); opacity: 1; }
+    }
+
+    .stage-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .stage-btns {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .mini-btn {
+      background: var(--bg-elev);
+      color: var(--ink);
+      border: 2px solid var(--ink);
+      padding: 4px 8px;
+      font-size: 11.5px;
+      font-weight: 800;
+    }
+
+    body[data-theme="dark"] .mini-btn {
+      border-color: #4A5596;
+    }
+
+    .mini-btn.is-active {
+      background: var(--riso-lime);
+      color: #111118;
+      border-color: #111118;
+    }
+
+    .stage-hint {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--ink-muted);
+    }
+
+    /* NPC RPG Dialogue Box */
+    .npc-box {
+      margin-top: 10px;
+      background: #111118;
+      color: #FAF7F0;
+      border: 2px solid var(--riso-lime);
+      padding: 10px 12px;
+      display: grid;
+      grid-template-columns: 48px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+    }
+
+    .npc-avatar {
+      width: 48px;
+      height: 48px;
+      background: #1F38FF;
+      border: 2px solid var(--riso-lime);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+
+    .npc-speaker {
+      font-size: 12px;
+      font-weight: 900;
+      color: var(--riso-lime);
+      margin-bottom: 3px;
+    }
+
+    .npc-dialogue {
+      font-size: 13px;
+      line-height: 1.45;
+      color: #FAF7F0;
+    }
+
+    .telemetry-strip {
+      margin-top: 8px;
+      background: var(--bg-inset);
+      border: 2px solid var(--border-ink);
+      padding: 7px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    /* ================= RIGHT DECK PANELS ================= */
+    .deck-panel {
+      background: var(--bg-card);
+      border: 3px solid var(--ink);
+      box-shadow: 5px 5px 0 var(--shadow-ink);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    body[data-theme="dark"] .deck-panel {
+      border-color: #4A5596;
+    }
+
+    .panel-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      border-bottom: 2px solid var(--border-ink);
+      padding-bottom: 8px;
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 900;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .pill-btn {
+      background: var(--bg-elev);
+      color: var(--ink);
+      border: 2px solid var(--border-ink);
+      padding: 4px 9px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .pill-btn:hover {
+      border-color: var(--riso-pink);
+    }
+
+    .pill-btn.is-active {
+      background: var(--riso-pink);
+      color: #FAF7F0;
+      border-color: #111118;
+    }
+
+    .pill-btn.is-solved {
+      border-color: var(--riso-emerald);
+    }
+
+    .subtab-bar {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .subtab-bar--4 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .subtab-btn {
+      background: var(--bg-inset);
+      color: var(--ink);
+      border: 2px solid var(--border-ink);
+      padding: 7px 9px;
+      font-size: 12.5px;
+      font-weight: 800;
+      text-align: left;
+    }
+
+    .subtab-btn.is-active {
+      background: var(--riso-lime);
+      color: #111118;
+      border-color: #111118;
+      box-shadow: 2px 2px 0 #111118;
+    }
+
+    .control-box {
+      background: var(--bg-inset);
+      border: 2px solid var(--border-ink);
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .slider-row {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .slider-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12.5px;
+      font-weight: 800;
+    }
+
+    .slider-val {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--riso-blue);
+      font-weight: 900;
+    }
+
+    body[data-theme="dark"] .slider-val {
+      color: var(--riso-cyan);
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--riso-pink);
+      cursor: pointer;
+    }
+
+    .readout-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 7px;
+    }
+
+    .readout-cell {
+      background: var(--bg-card);
+      border: 1.5px solid var(--border-ink);
+      padding: 6px 8px;
+      min-width: 0;
+    }
+
+    .readout-k {
+      display: block;
+      font-size: 11px;
+      color: var(--ink-muted);
+      font-weight: 700;
+    }
+
+    .readout-v {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 900;
+      word-break: break-word;
+    }
+
+    /* Suspect Verdict Cards */
+    .suspect-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .suspect-card {
+      background: var(--bg-elev);
+      border: 2px solid var(--border-ink);
+      padding: 9px 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 6px;
+      text-align: left;
+    }
+
+    .suspect-card h4 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    .suspect-specs {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--ink-sub);
+      line-height: 1.35;
+    }
+
+    .verdict-btn {
+      background: var(--riso-pink);
+      color: #FAF7F0;
+      border: 2px solid #111118;
+      padding: 5px 8px;
+      font-size: 12px;
+      font-weight: 900;
+      box-shadow: 2px 2px 0 #111118;
+    }
+
+    .verdict-btn:hover {
+      background: var(--riso-lime);
+      color: #111118;
+    }
+
+    .debrief-box {
+      background: #111118;
+      color: #FAF7F0;
+      border: 3px solid var(--riso-lime);
+      padding: 12px;
+    }
+
+    .debrief-box h4 {
+      margin: 0 0 6px;
+      color: var(--riso-lime);
+      font-size: 15px;
+    }
+
+    .debrief-box p {
+      margin: 0 0 8px;
+      font-size: 12.5px;
+      color: #E2E6FA;
+    }
+
+    /* Codex 24 Mineral Grid */
+    .search-input {
+      width: 100%;
+      padding: 7px 10px;
+      background: var(--bg-elev);
+      border: 2px solid var(--border-ink);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .codex-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px;
+      max-height: 228px;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+
+    .mineral-chip {
+      background: var(--bg-elev);
+      border: 2px solid var(--border-ink);
+      padding: 6px 7px;
+      text-align: left;
+      font-size: 12px;
+      font-weight: 800;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .mineral-chip.is-active {
+      background: var(--riso-blue);
+      color: #FAF7F0;
+      border-color: #111118;
+      box-shadow: 2px 2px 0 var(--riso-pink);
+    }
+
+    .mineral-chip small {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      opacity: 0.8;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .monologue-quote {
+      background: #111118;
+      color: var(--riso-lime);
+      border-left: 5px solid var(--riso-pink);
+      padding: 9px 11px;
+      font-size: 12.5px;
+      font-weight: 700;
+    }
+
+    /* 12 Simple Forms Postage-Stamp Wall (pixel_02 homage!) */
+    .stamps12-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .form-stamp-card {
+      background: var(--bg-elev);
+      border: 2.5px dashed var(--ink);
+      padding: 6px;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+      transition: transform 0.08s ease;
+    }
+
+    body[data-theme="dark"] .form-stamp-card {
+      border-color: var(--riso-lime);
+    }
+
+    .form-stamp-card.is-active {
+      border-style: solid;
+      border-color: var(--riso-pink);
+      box-shadow: 3px 3px 0 var(--riso-pink);
+      transform: translate(-1px, -1px);
+    }
+
+    .form-stamp-card canvas {
+      width: 100%;
+      aspect-ratio: 112 / 76;
+      border: 1px solid #111118;
+    }
+
+    .form-stamp-meta {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      font-weight: 900;
+    }
+
+    .form-stamp-name {
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Forge Match Meter */
+    .forge-meter {
+      background: #111118;
+      color: #FAF7F0;
+      border: 2px solid var(--riso-lime);
+      padding: 9px 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .meter-bar-track {
+      height: 10px;
+      background: #23263A;
+      border: 1px solid #4A5596;
+      overflow: hidden;
+    }
+
+    .meter-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--riso-pink), var(--riso-lime));
+      transition: width 0.15s ease;
+    }
+
+    /* ================= MODALS ================= */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 90;
+      background: rgba(11, 11, 20, 0.78);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+    }
+
+    .modal-card {
+      background: var(--bg-card);
+      border: 3px solid var(--ink);
+      box-shadow: 8px 8px 0 var(--riso-pink);
+      max-width: 760px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    body[data-theme="dark"] .modal-card {
+      border-color: var(--riso-lime);
+    }
+
+    .stamp-book-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 9px;
+    }
+
+    .ach-stamp-item {
+      border: 2px dashed var(--border-ink);
+      background: var(--bg-inset);
+      padding: 9px;
+      opacity: 0.58;
+    }
+
+    .ach-stamp-item.is-unlocked {
+      opacity: 1;
+      border-style: solid;
+      border-color: var(--riso-pink);
+      background: var(--bg-elev);
+      box-shadow: 3px 3px 0 var(--shadow-ink);
+    }
+
+    .ach-stamp-item h4 {
+      margin: 0 0 3px;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .ach-stamp-item p {
+      margin: 0;
+      font-size: 11.5px;
+      color: var(--ink-sub);
+    }
+
+    .postcard-preview-img {
+      width: 100%;
+      height: auto;
+      border: 2px solid #111118;
+      display: block;
+    }
+
+    /* ================= FOOTER ================= */
+    .arcade-footer {
+      width: 100%;
+      max-width: 1380px;
+      margin: 0 auto;
+      padding: 14px 14px 26px;
+      border-top: 2px dashed var(--border-ink);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px 16px;
+      font-size: 12px;
+      color: var(--ink-sub);
+    }
+
+    .footer-origin {
+      font-weight: 800;
+    }
+
+    .footer-origin strong {
+      color: var(--ink);
+    }
+
+    .hotkey-legend {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--ink-muted);
+    }
+
+    /* ================= RESPONSIVE BREAKPOINTS ================= */
+    @media (max-width: 1040px) {
+      .home-hero {
+        grid-template-columns: 1fr;
+      }
+      .home-mode-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .workbench-grid {
+        grid-template-columns: 1fr;
+      }
+      .stage-column {
+        position: static;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .arcade-topbar {
+        padding: 7px 10px;
+      }
+      .arcade-main {
+        padding: 10px 10px 22px;
+      }
+      .home-hero {
+        padding: 14px;
+      }
+      .home-mode-grid {
+        grid-template-columns: 1fr;
+      }
+      .mode-tabs {
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .mode-tab {
+        padding: 6px 7px;
+        font-size: 12px;
+        text-align: center;
+      }
+      .codex-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .stamps12-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .suspect-grid {
+        grid-template-columns: 1fr;
+      }
+      .stamp-book-grid {
+        grid-template-columns: 1fr;
+      }
+      .readout-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body data-theme="riso">
+  <!-- ================= TOP ARCADE BAR ================= -->
+  <header class="arcade-topbar">
+    <div class="topbar-inner">
+      <button type="button" id="btnBrandHome" class="brand-plaque" title="返回像素晶体卡带主页">
+        <img src="../assets/suva-cat-pixel.svg" width="30" height="30" alt="SUVA Black Cat" style="image-rendering:pixelated;display:block;" />
+        <span>
+          <span class="brand-origin">SUVA · 苏哇科技</span>
+          <span class="brand-name">像素晶体 PIXEL CRYSTAL</span>
+        </span>
+      </button>
+
+      <nav class="mode-tabs" id="modeNav" aria-label="游戏模式导航">
+        <button type="button" class="mode-tab" data-mode="DETECTIVE"><span class="tab-num">01</span>鉴定师闯关</button>
+        <button type="button" class="mode-tab" data-mode="CODEX"><span class="tab-num">02</span>矿物双晶图鉴</button>
+        <button type="button" class="mode-tab" data-mode="FORGE"><span class="tab-num">03</span>单形聚形工坊</button>
+        <button type="button" class="mode-tab" data-mode="OPTICS"><span class="tab-num">04</span>偏光色散暗室</button>
+      </nav>
+
+      <div class="utility-cluster">
+        <div class="rank-pill" id="rankBadge" title="当前鉴定师等级与经验值">
+          <span id="rankTitleText">见习晶体学徒</span>
+          <span class="rank-xp" id="rankXpText">0 XP</span>
+        </div>
+        <button type="button" id="btnStampBook" class="util-btn">🏅 集章册 <span id="stampCountText">0/12</span></button>
+        <button type="button" id="btnThemeToggle" class="util-btn" title="切换纸本孔版 / 光学暗室 (快捷键 T)">☀ RISO</button>
+        <button type="button" id="btnBgmToggle" class="util-btn" title="切换 8-Bit 芯片音乐 (快捷键 M)">♪ BGM</button>
+        <button type="button" class="util-btn" onclick="document.getElementById('modalV1Qr').hidden=false">💬 微信群</button>
+        <a href="../" class="util-btn" style="text-decoration:none;background:#C6FF00;color:#111118;border-color:#111118;">✨ V2全像素版</a>
+        <button type="button" id="btnExportPostcard" class="util-btn util-btn--pink" title="导出高清孔版像素纪念卡 PNG (快捷键 P)">📷 纪念卡</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= MAIN ARCADE SHELL ================= -->
+  <main class="arcade-main">
+    <!-- VIEW 1: HOME CARTRIDGE TITLE SCREEN -->
+    <section id="viewHome">
+      <div class="home-hero">
+        <div class="hero-copy">
+          <div>
+            <span class="riso-kicker">PRISMA · PIXEL OPTICS · VOL.01</span>
+            <h1 class="riso-hero-title">像素晶体</h1>
+            <div class="riso-hero-en">PIXEL CRYSTAL // 3-INK RISO OPTICS ARCADE</div>
+          </div>
+
+          <div class="suva-origin-strip">
+            <span>OFFICIAL ORIGIN</span>
+            <strong>SUVA · 苏哇科技 原创出品</strong>
+            <span>· 光影实验室晶体光学互动卡带</span>
+          </div>
+
+          <div class="hero-slogans">
+            <div class="slogan-bar slogan-bar--dark">空间格子 · 面角守恒 · 一色一单形 · 尖晶石接触双晶</div>
+            <div class="slogan-bar slogan-bar--light">斯涅尔色散 · 冰洲石重影 · 正交消光 · 石英旋光牛眼</div>
+          </div>
+
+          <div class="hero-cta-row">
+            <button type="button" id="btnHeroStart" class="cta-primary">▶ 开始宝石侦探闯关</button>
+            <button type="button" id="btnHeroOptics" class="cta-secondary">✦ 进入偏光色散暗室</button>
+          </div>
+        </div>
+
+        <!-- Master 480x270 Pixel Stage docks here on HOME -->
+        <div id="homeStageSlot"></div>
+      </div>
+
+      <!-- 4 Perforated Stamp Mode Cards -->
+      <div class="home-mode-grid">
+        <button type="button" class="stamp-mode-card" data-goto-mode="DETECTIVE">
+          <div>
+            <div class="stamp-card-top">
+              <span class="stamp-no">01</span>
+              <span class="stamp-tag" style="background:#FF4D94;color:#FAF7F0;">GEM DETECTIVE</span>
+            </div>
+            <h3>鉴定师闯关</h3>
+            <p>接手 8 桩主线晶体悬案与无限随机委托，操作折射仪、二色镜、锥光牛眼与静水天平盖章断案！</p>
+          </div>
+          <span class="stamp-enter">▶ 进入侦探社 [快捷键 1]</span>
+        </button>
+
+        <button type="button" class="stamp-mode-card" data-goto-mode="CODEX">
+          <div>
+            <div class="stamp-card-top">
+              <span class="stamp-no">02</span>
+              <span class="stamp-tag" style="background:#1F38FF;color:#FAF7F0;">24 MINERALS</span>
+            </div>
+            <h3>矿物双晶图鉴</h3>
+            <p>遍历七大晶系 24 种代表矿物，一键切换尖晶石 141°04' 凹角双晶、穿插双晶与 {hkl} 晶面测角。</p>
+          </div>
+          <span class="stamp-enter">▶ 翻阅图鉴 [快捷键 2]</span>
+        </button>
+
+        <button type="button" class="stamp-mode-card" data-goto-mode="FORGE">
+          <div>
+            <div class="stamp-card-top">
+              <span class="stamp-no">03</span>
+              <span class="stamp-tag" style="background:#C6FF00;color:#111118;">HABIT FORGE</span>
+            </div>
+            <h3>单形聚形工坊</h3>
+            <p>12 枚齿孔邮票单形图谱 + 「一色一单形」半空间切削台，亲手锻造方铅矿、石榴石与 26 面终极聚形。</p>
+          </div>
+          <span class="stamp-enter">▶ 开启锻造台 [快捷键 3]</span>
+        </button>
+
+        <button type="button" class="stamp-mode-card" data-goto-mode="OPTICS">
+          <div>
+            <div class="stamp-card-top">
+              <span class="stamp-no">04</span>
+              <span class="stamp-tag" style="background:#00E5FF;color:#111118;">OPTICAL BENCH</span>
+            </div>
+            <h3>偏光色散暗室</h3>
+            <p>棱镜色散激光靶、冰洲石坡印廷走离重影、米歇尔-莱维干涉色谱与三维光率体锥光干涉四大实验台。</p>
+          </div>
+          <span class="stamp-enter">▶ 点亮激光台 [快捷键 4]</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- SHARED 480x270 SOFTWARE PIXEL STAGE CARD -->
+    <div id="pixelStageCard" class="pixel-stage-card">
+      <div class="stage-screen-wrap" id="stageViewport">
+        <canvas id="pixelCanvas" width="480" height="270"></canvas>
+        <div id="faceHudChip" class="face-hud-chip" hidden></div>
+        <div id="stampOverlay" class="stamp-slam-overlay" hidden>
+          <div id="stampOverlayBox" class="stamp-slam-box">VERIFIED!</div>
+        </div>
+      </div>
+
+      <div class="stage-toolbar">
+        <div class="stage-btns">
+          <button type="button" id="btnAutoSpin" class="mini-btn is-active">↻ 自动旋转</button>
+          <button type="button" id="btnResetView" class="mini-btn">⟲ 复位视角</button>
+          <button type="button" id="btnQuickTwin" class="mini-btn">❖ 单晶/双晶</button>
+          <button type="button" id="btnQuickAxes" class="mini-btn">⊕ 对称轴</button>
+        </div>
+        <span class="stage-hint" id="stageHintText">拖拽旋转 · 点击晶面拾取 {hkl}</span>
+      </div>
+
+      <!-- Detective RPG NPC Box (shown in DETECTIVE mode) -->
+      <div id="npcBox" class="npc-box" hidden>
+        <div class="npc-avatar" id="npcAvatar" aria-hidden="true">🕵️</div>
+        <div>
+          <div class="npc-speaker" id="npcSpeaker">委托人</div>
+          <div class="npc-dialogue" id="npcDialogue">请使用右侧四台光学仪器检验这枚神秘标本！</div>
+        </div>
+      </div>
+
+      <!-- Live Telemetry Bar -->
+      <div id="stageTelemetry" class="telemetry-strip">
+        <span id="telemetryLeft">480×270 RISO PIXEL BUFFER</span>
+        <span id="telemetryRight">BAYER 4×4 · Z-BUFFER READY</span>
+      </div>
+    </div>
+
+    <!-- WORKBENCH VIEWS (DETECTIVE / CODEX / FORGE / OPTICS) -->
+    <section id="viewWorkbench" class="workbench-grid" hidden>
+      <div id="workbenchStageSlot" class="stage-column"></div>
+
+      <div class="deck-column">
+        <!-- ==================== 1. DETECTIVE PANEL ==================== -->
+        <div id="panelDetective" class="deck-panel" hidden>
+          <div class="panel-header">
+            <h2 class="panel-title">🔍 宝石鉴定委托台</h2>
+            <button type="button" id="btnEndlessCase" class="pill-btn" style="background:var(--riso-cyan);color:#111118;border-color:#111118;">∞ 随机无尽委托</button>
+          </div>
+
+          <div class="pill-row" id="caseListBar"></div>
+
+          <!-- 4 Diagnostic Station Tabs -->
+          <div class="subtab-bar subtab-bar--4" id="detStationTabs">
+            <button type="button" class="subtab-btn is-active" data-station="1">① 晶形与测角</button>
+            <button type="button" class="subtab-btn" data-station="2">② 折射仪与临界角</button>
+            <button type="button" class="subtab-btn" data-station="3">③ 偏光与锥光牛眼</button>
+            <button type="button" class="subtab-btn" data-station="4">④ 二色镜与静水比重</button>
+          </div>
+
+          <!-- Dynamic Station Controls & Live Readouts -->
+          <div id="detStationBody" class="control-box"></div>
+
+          <!-- Collected Evidence Notebook -->
+          <div class="control-box">
+            <div class="slider-label">
+              <span>📋 实测取证记录簿</span>
+              <span class="slider-val" id="detClueCounter">已检 1/4 站</span>
+            </div>
+            <div id="detEvidenceList" style="font-size:12px;line-height:1.5;color:var(--ink-sub);"></div>
+          </div>
+
+          <!-- Suspect Verdict Cards -->
+          <div>
+            <div class="slider-label" style="margin-bottom:6px;">
+              <span>⚖️ 锁定嫌疑标本并盖章结案</span>
+              <span class="slider-val" id="detStreakText">连胜 0</span>
+            </div>
+            <div id="detSuspectGrid" class="suspect-grid"></div>
+          </div>
+
+          <div id="detDebriefBox" class="debrief-box" hidden></div>
+        </div>
+
+        <!-- ==================== 2. CODEX PANEL ==================== -->
+        <div id="panelCodex" class="deck-panel" hidden>
+          <div class="panel-header">
+            <h2 class="panel-title">💎 24 矿物与双晶图鉴</h2>
+            <button type="button" id="btnSendToOptics" class="pill-btn" style="background:var(--riso-lime);color:#111118;border-color:#111118;">送入光学暗室 ↗</button>
+          </div>
+
+          <input type="search" id="codexSearchInput" class="search-input" placeholder="搜索矿物名称、英文、化学式或双晶律 (如：尖晶石 / Quartz / 141)..." />
+
+          <div class="pill-row" id="codexSystemBar"></div>
+
+          <div class="codex-grid" id="codexMineralGrid"></div>
+
+          <!-- Habit / Twin / Axes / Explode Controls -->
+          <div class="control-box">
+            <div class="pill-row">
+              <button type="button" id="btnCodexSingle" class="pill-btn is-active">单晶 SINGLE</button>
+              <button type="button" id="btnCodexTwin" class="pill-btn">接触·穿插双晶 TWIN</button>
+              <button type="button" id="btnCodexAxes" class="pill-btn">对称轴 L4·L3·L2</button>
+              <button type="button" id="btnCodexConstancy" class="pill-btn">面角守恒卡片</button>
+            </div>
+            <div class="slider-row">
+              <div class="slider-label">
+                <span>晶面拆解 (Explode {hkl})</span>
+                <span class="slider-val" id="codexExplodeVal">0%</span>
+              </div>
+              <input type="range" id="codexExplodeSlider" min="0" max="100" value="0" />
+            </div>
+          </div>
+
+          <div id="codexDossier"></div>
+        </div>
+
+        <!-- ==================== 3. FORGE PANEL ==================== -->
+        <div id="panelForge" class="deck-panel" hidden>
+          <div class="panel-header">
+            <h2 class="panel-title">⚒️ 单形邮票墙与聚形工坊</h2>
+          </div>
+
+          <div class="subtab-bar">
+            <button type="button" id="btnForgeTabStamps" class="subtab-btn is-active">A. 12 单形齿孔邮票墙</button>
+            <button type="button" id="btnForgeTabBuild" class="subtab-btn">B. 一色一单形聚形锻造</button>
+          </div>
+
+          <!-- Sub-tab A: 12 Simple Forms Postage-Stamp Atlas -->
+          <div id="forgeStampsView">
+            <p style="margin:0 0 8px;font-size:12px;color:var(--ink-sub);">点击任意齿孔邮票单形，在左侧 480×270 像素舞台检视其对称要素与 {hkl} 晶面：</p>
+            <div id="stamps12Grid" class="stamps12-grid"></div>
+            <div id="stampFormDetail" class="control-box" style="margin-top:8px;"></div>
+          </div>
+
+          <!-- Sub-tab B: Interactive Wulff Half-Space Truncation Forge -->
+          <div id="forgeBuildView" hidden>
+            <div>
+              <div class="slider-label" style="margin-bottom:5px;">
+                <span>📐 6 大经典聚形蓝图任务</span>
+                <span class="slider-val" id="forgeQuestProgress">0/6 已锻造</span>
+              </div>
+              <div class="pill-row" id="forgeBlueprintBar"></div>
+            </div>
+
+            <div class="control-box">
+              <div class="slider-label">
+                <span>晶系几何对称腔</span>
+                <div class="pill-row" id="forgeModeBar">
+                  <button type="button" class="pill-btn is-active" data-forge-mode="cubic">等轴 m3m</button>
+                  <button type="button" class="pill-btn" data-forge-mode="tetragonal">四方 4/mmm</button>
+                  <button type="button" class="pill-btn" data-forge-mode="hexagonal">六方 6/mmm</button>
+                </div>
+              </div>
+
+              <div class="slider-row">
+                <div class="slider-label">
+                  <span style="color:var(--riso-pink);" id="lblD100">■ 粉红墨 · {100} 法向距离 d100</span>
+                  <span class="slider-val" id="valD100">1.00</span>
+                </div>
+                <input type="range" id="sliderD100" min="45" max="220" value="100" />
+              </div>
+
+              <div class="slider-row">
+                <div class="slider-label">
+                  <span style="color:var(--riso-blue);" id="lblD111">▲ 钴蓝墨 · {111} 法向距离 d111</span>
+                  <span class="slider-val" id="valD111">1.00</span>
+                </div>
+                <input type="range" id="sliderD111" min="45" max="220" value="100" />
+              </div>
+
+              <div class="slider-row">
+                <div class="slider-label">
+                  <span style="color:#6ea300;" id="lblD110">◆ 荧光黄绿 · {110} 法向距离 d110</span>
+                  <span class="slider-val" id="valD110">1.15</span>
+                </div>
+                <input type="range" id="sliderD110" min="45" max="220" value="115" />
+              </div>
+
+              <div class="slider-row">
+                <div class="slider-label">
+                  <span style="color:var(--riso-coral);" id="lblD211">⬡ 珊瑚橙墨 · {211} 法向距离 d211</span>
+                  <span class="slider-val" id="valD211">1.55</span>
+                </div>
+                <input type="range" id="sliderD211" min="45" max="220" value="155" />
+              </div>
+
+              <div class="pill-row">
+                <button type="button" id="btnSnapBlueprint" class="pill-btn">✨ 一键对齐当前蓝图精确截角</button>
+              </div>
+            </div>
+
+            <div class="forge-meter" id="forgeMatchBox"></div>
+          </div>
+        </div>
+
+        <!-- ==================== 4. OPTICS DARKROOM PANEL ==================== -->
+        <div id="panelOptics" class="deck-panel" hidden>
+          <div class="panel-header">
+            <h2 class="panel-title">🌈 光学暗室 · 四大像素实验台</h2>
+          </div>
+
+          <div class="subtab-bar subtab-bar--4" id="opticsBenchTabs">
+            <button type="button" class="subtab-btn is-active" data-bench="dispersion">A. 折射色散激光靶</button>
+            <button type="button" class="subtab-btn" data-bench="calcite">B. 冰洲石双折射重影</button>
+            <button type="button" class="subtab-btn" data-bench="michel">C. 正交消光与色谱</button>
+            <button type="button" class="subtab-btn" data-bench="conoscope">D. 光率体与锥光干涉</button>
+          </div>
+
+          <div id="opticsControlsBody" class="control-box"></div>
+
+          <div id="opticsReadoutBody" class="readout-grid"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ================= FOOTER ================= -->
+  <footer class="arcade-footer">
+    <div class="footer-origin">
+      <strong>SUVA · 苏哇科技 原创出品</strong> · 光影实验室维护管理 · Source-Available 仅限浏览与个人非商业体验（严禁二次分发与商业应用）
+    </div>
+    <div class="hotkey-legend">
+      快捷键：[1-4] 切换模式 · [Space] 单/双晶 · [T] 纸本/暗室 · [M] 8-Bit音乐 · [P] 导出纪念卡
+    </div>
+  </footer>
+
+  <!-- ================= ACHIEVEMENT STAMP BOOK MODAL ================= -->
+  <div id="modalStamps" class="modal-backdrop" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="stampModalTitle">
+      <div class="panel-header">
+        <h3 class="panel-title" id="stampModalTitle">🏅 晶体光学集章册 · ACHIEVEMENT STAMPS</h3>
+        <button type="button" id="btnCloseStamps" class="util-btn">✕ 关闭</button>
+      </div>
+      <div id="stampRankSummary" class="control-box"></div>
+      <div id="stampBookGrid" class="stamp-book-grid"></div>
+    </div>
+  </div>
+
+  <!-- ================= POSTCARD SOUVENIR MODAL ================= -->
+  <div id="modalPostcard" class="modal-backdrop" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="postcardModalTitle">
+      <div class="panel-header">
+        <h3 class="panel-title" id="postcardModalTitle">📷 孔版像素邮票纪念卡已生成 (1280×720 PNG)</h3>
+        <button type="button" id="btnClosePostcard" class="util-btn">✕ 关闭</button>
+      </div>
+      <img id="postcardPreviewImg" class="postcard-preview-img" alt="SUVA PixelCrystal Souvenir Postcard" />
+      <div class="pill-row" style="justify-content:flex-end;">
+        <a id="postcardDownloadLink" class="cta-primary" style="text-decoration:none;font-size:13px;padding:8px 14px;" download="SUVA-PixelCrystal-Postcard.png">⬇ 再次保存 PNG</a>
+      </div>
+    </div>
+  </div>
+
+    <div id="modalV1Qr" class="modal-backdrop" hidden onclick="if(event.target===this)this.hidden=true">
+    <div class="modal-card" style="max-width:440px;text-align:center;">
+      <div class="panel-header">
+        <h3 class="panel-title">🐾 SUVA · 余博士开源技术群</h3>
+        <button type="button" class="util-btn" onclick="document.getElementById('modalV1Qr').hidden=true">✕ 关闭</button>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
+        <img src="../assets/suva-cat-pixel.svg" width="48" height="48" alt="SUVA Cat" style="image-rendering:pixelated;" />
+        <div style="text-align:left;font-size:13px;">
+          <strong>官方团队：SUVA / 地质大学博士说AI / 苏哇科技</strong><br/>
+          <span style="color:var(--ink-sub);font-size:12px;">当前为 V1 经典档案版 · 可随时切换 V2 纯像素掌机版</span>
+        </div>
+      </div>
+      <div style="background:#FFFFFF;border:3px solid #111118;padding:10px;margin:0 auto;width:236px;">
+        <img src="../assets/wecom-open-source-group.png" width="210" height="210" alt="企业微信二维码：加入余博士开源技术群" style="display:block;width:100%;height:auto;image-rendering:pixelated;" />
+      </div>
+      <div style="font-size:12px;font-weight:800;">扫描上方企业微信二维码加入群聊，一起交流晶体光学与开源技术</div>
+    </div>
+  </div>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

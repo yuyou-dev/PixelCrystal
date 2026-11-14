@@ -1,5 +1,5 @@
-// SUVA · 苏哇科技 · PixelCrystal (像素晶体)
-// Main Arcade Game Loop, State Machine & Neo-Brutalist Risograph UI Controller
+// SUVA · 苏哇科技 · PixelCrystal V2 (像素晶体 · 100% 纯像素街机与掌机双模引擎)
+// Official Team: SUVA / 地质大学博士说AI / 苏哇科技
 
 import {
   OPTICAL_MATERIALS,
@@ -48,9 +48,13 @@ import {
 
 import { PixelEngine, renderMiniStampCanvas } from './pixel-engine.js';
 import { exportPixelPostcard } from './postcard-maker.js';
+import {
+  DOCK_SPRITES,
+  PIXEL_ICONS,
+  SUVA_CAT_DETECTIVE_SRC,
+} from './pixel-sprites.js';
 
 const SAVE_KEY = 'suva_pixel_crystal_save_v1';
-
 const CODEX_MAP = new Map(MINERAL_CODEX.map((m) => [m.id, m]));
 
 function loadSaveState() {
@@ -86,7 +90,7 @@ function persistSaveState(save) {
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify(save));
   } catch {
-    // Ignore storage quota errors in private browsing
+    // Ignore storage quota errors
   }
 }
 
@@ -106,6 +110,15 @@ const save = loadSaveState();
 const state = {
   view: 'HOME', // 'HOME' | 'DETECTIVE' | 'CODEX' | 'FORGE' | 'OPTICS'
   theme: 'riso', // 'riso' | 'dark'
+  forceHandheld: false,
+  mobileSubGroup: {
+    HOME: 'home-launch',
+    DETECTIVE: 'det-lab',
+    CODEX: 'codex-list',
+    FORGE: 'forge-cut',
+    OPTICS: 'opt-dispersion',
+  },
+
   autoSpin: true,
   rotX: 0.36,
   rotY: 0.62,
@@ -113,14 +126,13 @@ const state = {
   zoom: 1.0,
   showAxes: false,
 
-  // Face picking & 2-face Steno goniometer
   hoveredFaceId: -1,
   selectedFaceId: -1,
   secondFaceId: -1,
 
   // Detective state
   activeCase: DETECTIVE_CASES[0],
-  detStation: 1, // 1 | 2 | 3 | 4
+  detStation: 1,
   detVariant: 'single',
   detRefRotDeg: 35,
   detTirAngleDeg: 28,
@@ -183,10 +195,8 @@ const state = {
   conoHandedness: 1,
 };
 
-// Precompute Michel-Lévy CIE 1931 strip once
 const MICHEL_STRIP_RGB = michelLevyStrip(228, 1650);
 
-// Memoized Conoscope buffer cache for 60 FPS smoothness
 let cachedConoKey = '';
 let cachedConoBuf = null;
 function getCachedConoscope(materialId, opts) {
@@ -211,6 +221,9 @@ function getCachedConoscope(materialId, opts) {
 const el = {
   pixelCanvas: document.getElementById('pixelCanvas'),
   pixelStageCard: document.getElementById('pixelStageCard'),
+  handheldScreenHost: document.getElementById('handheldScreenHost'),
+  mobileFolderBar: document.getElementById('mobileFolderBar'),
+  mobileBottomDock: document.getElementById('mobileBottomDock'),
   homeStageSlot: document.getElementById('homeStageSlot'),
   workbenchStageSlot: document.getElementById('workbenchStageSlot'),
   viewHome: document.getElementById('viewHome'),
@@ -227,10 +240,14 @@ const el = {
   npcAvatar: document.getElementById('npcAvatar'),
   npcSpeaker: document.getElementById('npcSpeaker'),
   npcDialogue: document.getElementById('npcDialogue'),
+  mobileCaseBriefBox: document.getElementById('mobileCaseBriefBox'),
+  mobileNpcSpeaker: document.getElementById('mobileNpcSpeaker'),
+  mobileNpcDialogue: document.getElementById('mobileNpcDialogue'),
 
   rankTitleText: document.getElementById('rankTitleText'),
   rankXpText: document.getElementById('rankXpText'),
   stampCountText: document.getElementById('stampCountText'),
+  btnHandheldToggle: document.getElementById('btnHandheldToggle'),
   btnThemeToggle: document.getElementById('btnThemeToggle'),
   btnBgmToggle: document.getElementById('btnBgmToggle'),
   btnAutoSpin: document.getElementById('btnAutoSpin'),
@@ -243,7 +260,7 @@ const el = {
   panelOptics: document.getElementById('panelOptics'),
 
   caseListBar: document.getElementById('caseListBar'),
-  detStationTabs: document.getElementById('detStationTabs'),
+  detStationTabs: document.getElementById('detStationTabsMobileSwitch'),
   detStationBody: document.getElementById('detStationBody'),
   detClueCounter: document.getElementById('detClueCounter'),
   detEvidenceList: document.getElementById('detEvidenceList'),
@@ -274,12 +291,189 @@ const el = {
   stampRankSummary: document.getElementById('stampRankSummary'),
   stampBookGrid: document.getElementById('stampBookGrid'),
 
+  modalSuvaQr: document.getElementById('modalSuvaQr'),
+
   modalPostcard: document.getElementById('modalPostcard'),
   postcardPreviewImg: document.getElementById('postcardPreviewImg'),
   postcardDownloadLink: document.getElementById('postcardDownloadLink'),
 };
 
 const engine = new PixelEngine(el.pixelCanvas);
+
+// ============================================================================
+// INJECT 100% PURE PIXEL-ART SPRITES (ZERO SYSTEM EMOJIS)
+// ============================================================================
+function setHtmlById(id, html) {
+  const node = document.getElementById(id);
+  if (node) node.innerHTML = html;
+}
+
+function injectStaticPixelIcons() {
+  setHtmlById('dockIcoHome', DOCK_SPRITES.HOME(24));
+  setHtmlById('dockIcoDet', DOCK_SPRITES.DETECTIVE(24));
+  setHtmlById('dockIcoCodex', DOCK_SPRITES.CODEX(24));
+  setHtmlById('dockIcoForge', DOCK_SPRITES.FORGE(24));
+  setHtmlById('dockIcoOptics', DOCK_SPRITES.OPTICS(24));
+
+  setHtmlById('icoTitleDet', DOCK_SPRITES.DETECTIVE(24));
+  setHtmlById('icoTitleCodex', DOCK_SPRITES.CODEX(24));
+  setHtmlById('icoTitleForge', DOCK_SPRITES.FORGE(24));
+  setHtmlById('icoTitleOptics', DOCK_SPRITES.OPTICS(24));
+
+  setHtmlById('icoMedal', PIXEL_ICONS.medal(14));
+  setHtmlById('icoQr', PIXEL_ICONS.qr(14));
+  setHtmlById('icoHandheld', PIXEL_ICONS.handheld(14));
+  setHtmlById('icoTheme', PIXEL_ICONS.sun(14));
+  setHtmlById('icoBgm', PIXEL_ICONS.music(14));
+  setHtmlById('icoCamera', PIXEL_ICONS.camera(14));
+  setHtmlById('icoV1', PIXEL_ICONS.v1Tag(14));
+
+  setHtmlById('icoSpin', PIXEL_ICONS.spin(12));
+  setHtmlById('icoReset', PIXEL_ICONS.reset(12));
+  setHtmlById('icoTwin', PIXEL_ICONS.twin(12));
+  setHtmlById('icoAxes', PIXEL_ICONS.axes(12));
+  setHtmlById('icoHeroPlay', PIXEL_ICONS.play(12));
+  setHtmlById('icoHeroSpark', PIXEL_ICONS.spark(12));
+  setHtmlById('icoNotebook', PIXEL_ICONS.notebook(14));
+  setHtmlById('icoGavel', PIXEL_ICONS.gavel(14));
+  setHtmlById('icoModalMedal', PIXEL_ICONS.medal(20));
+  setHtmlById('icoModalCam', PIXEL_ICONS.camera(20));
+
+  if (el.npcAvatar) {
+    el.npcAvatar.innerHTML = `<img src="${SUVA_CAT_DETECTIVE_SRC}" width="44" height="44" alt="SUVA 黑猫鉴定官" />`;
+  }
+}
+
+// ============================================================================
+// HANDHELD VS DESKTOP DUAL-MODE LAYOUT ENGINE
+// ============================================================================
+function isHandheldLayout() {
+  return state.forceHandheld || window.innerWidth <= 860;
+}
+
+const MOBILE_FOLDER_DEFS = {
+  HOME: [
+    { id: 'home-launch', label: '卡带大厅' },
+    { id: 'home-suva', label: '黑猫与开源群' },
+  ],
+  DETECTIVE: [
+    { id: 'det-lab', label: '四站仪器' },
+    { id: 'det-verdict', label: '盖章断案' },
+    { id: 'det-case', label: '案卷线索' },
+  ],
+  CODEX: [
+    { id: 'codex-list', label: '24矿物库' },
+    { id: 'codex-ctrl', label: '双晶拆解' },
+    { id: 'codex-doc', label: '光学档案' },
+  ],
+  FORGE: [
+    { id: 'forge-cut', label: '四墨切削' },
+    { id: 'forge-bp', label: '聚形蓝图' },
+    { id: 'forge-stamps', label: '12单形票' },
+  ],
+  OPTICS: [
+    { id: 'opt-dispersion', label: 'A.色散靶' },
+    { id: 'opt-calcite', label: 'B.冰洲石' },
+    { id: 'opt-michel', label: 'C.干涉色' },
+    { id: 'opt-conoscope', label: 'D.锥光图' },
+  ],
+};
+
+function syncStageAndHandheldLayout() {
+  const handheld = isHandheldLayout();
+  document.body.setAttribute('data-layout', handheld ? 'handheld' : 'desktop');
+  el.btnHandheldToggle?.classList.toggle('is-on', state.forceHandheld);
+  if (el.mobileCaseBriefBox) {
+    el.mobileCaseBriefBox.hidden = !handheld;
+  }
+
+  // Dock the 480x270 software pixel stage into the active physical host
+  if (handheld) {
+    if (el.handheldScreenHost && el.pixelStageCard.parentElement !== el.handheldScreenHost) {
+      el.handheldScreenHost.appendChild(el.pixelStageCard);
+    }
+    renderMobileFolderBar();
+    applyMobileSubGroupVisibility();
+  } else {
+    document.querySelectorAll('[data-mgroup]').forEach((node) => {
+      node.classList.remove('is-mhidden');
+    });
+    const targetSlot = state.view === 'HOME' ? el.homeStageSlot : el.workbenchStageSlot;
+    if (targetSlot && el.pixelStageCard.parentElement !== targetSlot) {
+      targetSlot.appendChild(el.pixelStageCard);
+    }
+  }
+
+  // Highlight bottom 5-slot cartridge dock
+  el.mobileBottomDock?.querySelectorAll('[data-dock-mode]').forEach((btn) => {
+    btn.classList.toggle('is-active', btn.dataset.dockMode === state.view);
+  });
+}
+
+function renderMobileFolderBar() {
+  if (!el.mobileFolderBar) return;
+  const defs = MOBILE_FOLDER_DEFS[state.view] || [];
+  el.mobileFolderBar.style.setProperty('--folder-count', String(Math.max(1, defs.length)));
+  const currentId = state.mobileSubGroup[state.view] || defs[0]?.id;
+
+  el.mobileFolderBar.innerHTML = '';
+  for (const item of defs) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `mobile-folder-tab${item.id === currentId ? ' is-active' : ''}`;
+    btn.textContent = item.label;
+    btn.addEventListener('click', () => {
+      playClick();
+      state.mobileSubGroup[state.view] = item.id;
+
+      // Sync Forge / Optics internal sub-states when switching handheld folder tabs
+      if (state.view === 'FORGE') {
+        state.forgeSubTab = item.id === 'forge-stamps' ? 'stamps' : 'build';
+        renderForgeUI();
+      } else if (state.view === 'OPTICS') {
+        state.opticsBench = item.id.replace('opt-', '');
+        renderOpticsUI();
+      }
+
+      renderMobileFolderBar();
+      applyMobileSubGroupVisibility();
+    });
+    el.mobileFolderBar.appendChild(btn);
+  }
+}
+
+function applyMobileSubGroupVisibility() {
+  if (!isHandheldLayout()) return;
+  const activeGroup = state.mobileSubGroup[state.view];
+
+  if (state.view === 'FORGE') {
+    const wantStamps = activeGroup === 'forge-stamps';
+    if ((state.forgeSubTab === 'stamps') !== wantStamps) {
+      state.forgeSubTab = wantStamps ? 'stamps' : 'build';
+      renderForgeUI();
+    }
+  }
+
+  const rootContainer = state.view === 'HOME'
+    ? el.viewHome
+    : state.view === 'DETECTIVE'
+      ? el.panelDetective
+      : state.view === 'CODEX'
+        ? el.panelCodex
+        : state.view === 'FORGE'
+          ? el.panelForge
+          : el.panelOptics;
+
+  if (!rootContainer) return;
+  rootContainer.querySelectorAll('[data-mgroup]').forEach((node) => {
+    const g = node.getAttribute('data-mgroup');
+    if (state.view === 'OPTICS' && g === 'opt-active') {
+      node.classList.remove('is-mhidden');
+    } else {
+      node.classList.toggle('is-mhidden', g !== activeGroup);
+    }
+  });
+}
 
 // ============================================================================
 // PROGRESSION, ACHIEVEMENT STAMPS & TYPEWRITER DIALOGUE
@@ -318,16 +512,17 @@ function unlockAchievementStamp(stampId) {
   save.xp += meta.xpBonus || 40;
   persistSaveState(save);
   updateProgressionBar();
-  showStampSlam(`🏅 解锁印章：${meta.titleZh || meta.nameZh}`);
+  showStampSlam(`★ 解锁印章: ${meta.titleZh || meta.nameZh}`);
   return true;
 }
 
 let typewriterTimer = null;
-function runTypewriter(speaker, fullText, avatarEmoji = '🕵️') {
+function runTypewriter(speaker, fullText) {
   if (typewriterTimer) clearInterval(typewriterTimer);
-  el.npcAvatar.textContent = avatarEmoji;
   el.npcSpeaker.textContent = speaker;
   el.npcDialogue.textContent = '';
+  if (el.mobileNpcSpeaker) el.mobileNpcSpeaker.textContent = speaker;
+  if (el.mobileNpcDialogue) el.mobileNpcDialogue.textContent = fullText;
 
   let idx = 0;
   const chars = Array.from(String(fullText || ''));
@@ -348,8 +543,10 @@ function runTypewriter(speaker, fullText, avatarEmoji = '🕵️') {
 function setTheme(nextTheme) {
   state.theme = nextTheme === 'dark' ? 'dark' : 'riso';
   document.body.setAttribute('data-theme', state.theme);
-  el.btnThemeToggle.textContent = state.theme === 'dark' ? '☾ DARK' : '☀ RISO';
-  el.btnThemeToggle.classList.toggle('is-on', state.theme === 'dark');
+  setHtmlById('icoTheme', state.theme === 'dark' ? PIXEL_ICONS.moon(14) : PIXEL_ICONS.sun(14));
+  const lbl = document.getElementById('lblTheme');
+  if (lbl) lbl.textContent = state.theme === 'dark' ? 'DARK' : 'RISO';
+  el.btnThemeToggle?.classList.toggle('is-on', state.theme === 'dark');
 }
 
 function clearFaceSelection() {
@@ -363,7 +560,6 @@ function switchView(nextView) {
   state.view = nextView;
   clearFaceSelection();
 
-  // Highlight active mode tab
   document.querySelectorAll('#modeNav .mode-tab').forEach((btn) => {
     btn.classList.toggle('is-active', btn.dataset.mode === nextView);
   });
@@ -372,14 +568,13 @@ function switchView(nextView) {
     el.viewHome.hidden = false;
     el.viewWorkbench.hidden = true;
     el.npcBox.hidden = true;
-    el.homeStageSlot.appendChild(el.pixelStageCard);
     el.stageHintText.textContent = '拖拽旋转 26 面终极聚形晶 · 点击晶面拾取 {hkl}';
+    syncStageAndHandheldLayout();
     return;
   }
 
   el.viewHome.hidden = true;
   el.viewWorkbench.hidden = false;
-  el.workbenchStageSlot.appendChild(el.pixelStageCard);
 
   el.panelDetective.hidden = nextView !== 'DETECTIVE';
   el.panelCodex.hidden = nextView !== 'CODEX';
@@ -395,11 +590,17 @@ function switchView(nextView) {
     renderCodexUI();
   } else if (nextView === 'FORGE') {
     el.stageHintText.textContent = '拖拽旋转聚形晶 · 点击晶面查看所属单形油墨';
+    if (isHandheldLayout() && state.mobileSubGroup.FORGE !== 'forge-stamps') {
+      state.forgeSubTab = 'build';
+    }
     renderForgeUI();
   } else if (nextView === 'OPTICS') {
-    el.stageHintText.textContent = '调节右侧光学滑杆 · 实时观测斯涅尔色散与偏光干涉';
+    el.stageHintText.textContent = '调节光学滑杆 · 实时观测斯涅尔色散与偏光干涉';
+    state.mobileSubGroup.OPTICS = `opt-${state.opticsBench}`;
     renderOpticsUI();
   }
+
+  syncStageAndHandheldLayout();
 }
 
 // ============================================================================
@@ -421,17 +622,14 @@ function loadDetectiveCase(caseObj) {
   clearFaceSelection();
   el.detDebriefBox.hidden = true;
 
-  const avatar = caseObj.isEndless ? '🧭' : '🏛️';
   runTypewriter(
-    `${caseObj.caseCode} · ${caseObj.clientZh}（${caseObj.clientRoleZh || '委托人'}）`,
-    `${caseObj.briefZh} ${caseObj.storyIntro || ''}`,
-    avatar
+    `黑猫鉴定官 · ${caseObj.caseCode} · ${caseObj.clientZh}`,
+    `${caseObj.briefZh} ${caseObj.storyIntro || ''}`
   );
   renderDetectiveUI();
 }
 
 function renderDetectiveUI() {
-  // 1. Case Selector Bar
   el.caseListBar.innerHTML = '';
   DETECTIVE_CASES.forEach((c, idx) => {
     const btn = document.createElement('button');
@@ -439,7 +637,7 @@ function renderDetectiveUI() {
     const isCurr = !state.activeCase.isEndless && state.activeCase.id === c.id;
     const isSolved = save.solvedCases.includes(c.id);
     btn.className = `pill-btn${isCurr ? ' is-active' : ''}${isSolved ? ' is-solved' : ''}`;
-    btn.textContent = `${isSolved ? '✓ ' : ''}CASE 0${idx + 1}`;
+    btn.innerHTML = `${isSolved ? PIXEL_ICONS.check(10) : ''}CASE 0${idx + 1}`;
     btn.title = c.titleZh;
     btn.addEventListener('click', () => {
       playClick();
@@ -455,8 +653,7 @@ function renderDetectiveUI() {
     el.caseListBar.appendChild(tag);
   }
 
-  // 2. Station Tabs
-  el.detStationTabs.querySelectorAll('.subtab-btn').forEach((btn) => {
+  el.detStationTabs?.querySelectorAll('.subtab-btn').forEach((btn) => {
     const st = Number(btn.dataset.station);
     btn.classList.toggle('is-active', st === state.detStation);
   });
@@ -464,6 +661,7 @@ function renderDetectiveUI() {
   renderDetectiveStationControls();
   renderDetectiveEvidence();
   renderDetectiveSuspects();
+  applyMobileSubGroupVisibility();
 }
 
 function renderDetectiveStationControls() {
@@ -477,12 +675,12 @@ function renderDetectiveStationControls() {
     const dih = mesh.dihedralSample;
     el.detStationBody.innerHTML = `
       <div class="slider-label">
-        <span>① 晶形放大镜与司特诺测角台</span>
+        <span>[1] 晶形放大镜与司特诺测角台</span>
         <span class="slider-val">总晶面 ${mesh.totalFaces} 面</span>
       </div>
       <div class="pill-row">
         <button type="button" id="detBtnSingle" class="pill-btn ${state.detVariant === 'single' ? 'is-active' : ''}">单晶形态</button>
-        <button type="button" id="detBtnTwin" class="pill-btn ${state.detVariant === 'twin' ? 'is-active' : ''}">切入双晶标本观察凹角</button>
+        <button type="button" id="detBtnTwin" class="pill-btn ${state.detVariant === 'twin' ? 'is-active' : ''}">双晶凹角检验</button>
         <button type="button" id="detBtnAxes" class="pill-btn ${state.showAxes ? 'is-active' : ''}">对称轴辅助线</button>
       </div>
       <div class="readout-grid">
@@ -492,10 +690,10 @@ function renderDetectiveStationControls() {
         </div>
         <div class="readout-cell">
           <span class="readout-k">双晶凹角特征</span>
-          <span class="readout-v">${state.detVariant === 'twin' && mesh.twinInfo ? mesh.twinInfo.reentrantLabel : '切换至双晶档查看'}</span>
+          <span class="readout-v">${state.detVariant === 'twin' && mesh.twinInfo ? mesh.twinInfo.reentrantLabel : '切至双晶档查看'}</span>
         </div>
       </div>
-      <div style="font-size:11.5px;color:var(--ink-muted);">提示：在左侧画布先后点击任意两个晶面，可直接实测法线夹角 Δθ（面角守恒定律）。</div>
+      <div style="font-size:12px;color:var(--ink-muted);">提示: 在像素视窗先后点击任意两晶面，实测法线夹角 Δθ。</div>
     `;
     document.getElementById('detBtnSingle')?.addEventListener('click', () => {
       playClick();
@@ -521,26 +719,26 @@ function renderDetectiveStationControls() {
     el.detStationBody.innerHTML = `
       <div class="slider-row">
         <div class="slider-label">
-          <span>阿贝折光仪台面旋转角 (589.3nm 钠光)</span>
+          <span>阿贝折光仪旋转角 (589.3nm)</span>
           <span class="slider-val" id="detRefAngleTxt">${state.detRefRotDeg}°</span>
         </div>
         <input type="range" id="detRefSlider" min="0" max="180" value="${state.detRefRotDeg}" />
       </div>
       <div class="slider-row">
         <div class="slider-label">
-          <span>晶内激光全反射测试角 θ₁</span>
-          <span class="slider-val" id="detTirAngleTxt">${state.detTirAngleDeg}° (临界角 ${tir.criticalDeg.toFixed(1)}°)</span>
+          <span>晶内激光全反射角 θ1</span>
+          <span class="slider-val" id="detTirAngleTxt">${state.detTirAngleDeg}° (θc=${tir.criticalDeg.toFixed(1)}°)</span>
         </div>
         <input type="range" id="detTirSlider" min="10" max="65" value="${state.detTirAngleDeg}" />
       </div>
       <div class="readout-grid">
         <div class="readout-cell">
           <span class="readout-k">折光仪阴影界读数</span>
-          <span class="readout-v" id="detRefReadout">${ref.overLimit ? 'OTL 超量程 (>1.79!)' : `${ref.nLow.toFixed(3)} – ${ref.nHigh.toFixed(3)}`}</span>
+          <span class="readout-v" id="detRefReadout">${ref.overLimit ? 'OTL 超量程 (>1.79!)' : `${ref.nLow.toFixed(3)} - ${ref.nHigh.toFixed(3)}`}</span>
         </div>
         <div class="readout-cell">
           <span class="readout-k">实测双折射跳动 Δn</span>
-          <span class="readout-v" id="detBirefReadout">${ref.overLimit ? '需结合偏光台判定' : `${ref.deltaN.toFixed(3)} (${ref.isDoublyRefractive ? '双折射' : '单折射'})`}</span>
+          <span class="readout-v" id="detBirefReadout">${ref.overLimit ? '结合偏光台判定' : `${ref.deltaN.toFixed(3)} (${ref.isDoublyRefractive ? '双折' : '单折'})`}</span>
         </div>
       </div>
     `;
@@ -548,13 +746,13 @@ function renderDetectiveStationControls() {
       state.detRefRotDeg = Number(e.target.value);
       const r2 = refractometerShadow(matId, { rotationDeg: state.detRefRotDeg });
       document.getElementById('detRefAngleTxt').textContent = `${state.detRefRotDeg}°`;
-      document.getElementById('detRefReadout').textContent = r2.overLimit ? 'OTL 超量程 (>1.79!)' : `${r2.nLow.toFixed(3)} – ${r2.nHigh.toFixed(3)}`;
-      document.getElementById('detBirefReadout').textContent = r2.overLimit ? '需结合偏光台判定' : `${r2.deltaN.toFixed(3)} (${r2.isDoublyRefractive ? '双折射' : '单折射'})`;
+      document.getElementById('detRefReadout').textContent = r2.overLimit ? 'OTL 超量程 (>1.79!)' : `${r2.nLow.toFixed(3)} - ${r2.nHigh.toFixed(3)}`;
+      document.getElementById('detBirefReadout').textContent = r2.overLimit ? '结合偏光台判定' : `${r2.deltaN.toFixed(3)} (${r2.isDoublyRefractive ? '双折' : '单折'})`;
     });
     document.getElementById('detTirSlider')?.addEventListener('input', (e) => {
       state.detTirAngleDeg = Number(e.target.value);
       const t2 = snellBenchRay(matId, state.detTirAngleDeg, true);
-      document.getElementById('detTirAngleTxt').textContent = `${state.detTirAngleDeg}° (${t2.tir ? '全内反射 TIR!' : '透射漏光'})`;
+      document.getElementById('detTirAngleTxt').textContent = `${state.detTirAngleDeg}° (${t2.tir ? '全反射 TIR!' : '透射漏光'})`;
       playLaserSweep(state.detTirAngleDeg / 65);
       if (t2.tir) unlockAchievementStamp('stamp_first_refraction');
     });
@@ -567,13 +765,13 @@ function renderDetectiveStationControls() {
     });
     el.detStationBody.innerHTML = `
       <div class="pill-row">
-        <button type="button" id="detBtnOrtho" class="pill-btn ${!state.detConoscopeMode ? 'is-active' : ''}">正交偏光镜 (P ⊥ A)</button>
-        <button type="button" id="detBtnCono" class="pill-btn ${state.detConoscopeMode ? 'is-active' : ''}">锥光贝克氏镜 (牛眼/黑十字)</button>
-        <button type="button" id="detBtnGypsum" class="pill-btn ${state.detGypsumOn ? 'is-active' : ''}">+530nm 石膏试板</button>
+        <button type="button" id="detBtnOrtho" class="pill-btn ${!state.detConoscopeMode ? 'is-active' : ''}">正交偏光镜</button>
+        <button type="button" id="detBtnCono" class="pill-btn ${state.detConoscopeMode ? 'is-active' : ''}">锥光牛眼镜</button>
+        <button type="button" id="detBtnGypsum" class="pill-btn ${state.detGypsumOn ? 'is-active' : ''}">+530nm 石膏板</button>
       </div>
       <div class="slider-row">
         <div class="slider-label">
-          <span>载物台旋转角 θ (0°–360°)</span>
+          <span>载物台旋转角 θ (0°-360°)</span>
           <span class="slider-val" id="detStageVal">${state.detStageDeg}°</span>
         </div>
         <input type="range" id="detStageSlider" min="0" max="360" value="${state.detStageDeg}" />
@@ -581,7 +779,7 @@ function renderDetectiveStationControls() {
       <div class="readout-grid">
         <div class="readout-cell">
           <span class="readout-k">正交消光与干涉现象</span>
-          <span class="readout-v" id="detOrthoReadout">${ax.className === 'isotropic' ? '360° 任意旋转全暗 (均质体)' : `四明四暗 · ${ortho.orderLabel}`}</span>
+          <span class="readout-v" id="detOrthoReadout">${ax.className === 'isotropic' ? '360°全暗 (均质体)' : `四明四暗 · ${ortho.orderLabel}`}</span>
         </div>
         <div class="readout-cell">
           <span class="readout-k">锥光光性与 2V 角</span>
@@ -616,7 +814,7 @@ function renderDetectiveStationControls() {
       });
       const rNode = document.getElementById('detOrthoReadout');
       if (rNode) {
-        rNode.textContent = ax.className === 'isotropic' ? '360° 任意旋转全暗 (均质体)' : `I=${Math.round(o2.transmission * 100)}% · ${o2.orderLabel}`;
+        rNode.textContent = ax.className === 'isotropic' ? '360°全暗 (均质体)' : `I=${Math.round(o2.transmission * 100)}% · ${o2.orderLabel}`;
       }
     });
   } else {
@@ -625,14 +823,14 @@ function renderDetectiveStationControls() {
     el.detStationBody.innerHTML = `
       <div class="slider-row">
         <div class="slider-label">
-          <span>方解石二色镜镜筒旋转 (0°–90°)</span>
+          <span>方解石二色镜旋转 (0°-90°)</span>
           <span class="slider-val" id="detDicVal">${state.detDichroDeg}° · ${dic.labelZh}</span>
         </div>
         <input type="range" id="detDicSlider" min="0" max="90" value="${state.detDichroDeg}" />
       </div>
       <div class="slider-row">
         <div class="slider-label">
-          <span>阿基米德静水天平浸入深度</span>
+          <span>静水天平浸水深度</span>
           <span class="slider-val" id="detDunkVal">${Math.round(state.detDunkProgress * 100)}%</span>
         </div>
         <input type="range" id="detDunkSlider" min="0" max="100" value="${Math.round(state.detDunkProgress * 100)}" />
@@ -644,7 +842,7 @@ function renderDetectiveStationControls() {
         </div>
         <div class="readout-cell">
           <span class="readout-k">阿基米德静水比重 SG</span>
-          <span class="readout-v" id="detSgVal">${state.detDunkProgress > 0.8 ? `SG = ${sg.sg.toFixed(2)}` : '请将标本完全浸入水中 (>85%)'}</span>
+          <span class="readout-v" id="detSgVal">${state.detDunkProgress > 0.8 ? `SG = ${sg.sg.toFixed(2)}` : '浸水 >85% 锁定读数'}</span>
         </div>
       </div>
     `;
@@ -658,7 +856,7 @@ function renderDetectiveStationControls() {
       document.getElementById('detDunkVal').textContent = `${Math.round(state.detDunkProgress * 100)}%`;
       document.getElementById('detSgVal').textContent = state.detDunkProgress > 0.8
         ? `SG = ${sg.sg.toFixed(2)} (已锁定)`
-        : '请将标本完全浸入水中 (>85%)';
+        : '浸水 >85% 锁定读数';
       renderDetectiveEvidence();
     });
   }
@@ -674,20 +872,20 @@ function renderDetectiveEvidence() {
   const lines = [];
   if (visited.has(1)) {
     const m = buildMineralMesh(truthId, { variant: 'single' });
-    lines.push(`• [晶形台] 单晶共 ${m.totalFaces} 晶面，典型夹角 ${m.dihedralSample.pair} = ${m.dihedralSample.normalDeg}°`);
+    lines.push(`* [晶形台] 单晶共 ${m.totalFaces} 晶面, 夹角 ${m.dihedralSample.pair} = ${m.dihedralSample.normalDeg}°`);
   }
   if (visited.has(2)) {
     const ref = refractometerShadow(matId);
-    lines.push(`• [折光仪] ${ref.overLimit ? 'RI 超出 1.79 接触液上限 (OTL)!' : `RI = ${ref.nLow.toFixed(3)}–${ref.nHigh.toFixed(3)}，Δn = ${ref.deltaN.toFixed(3)}`}`);
+    lines.push(`* [折光仪] ${ref.overLimit ? 'RI 超出 1.79 上限 (OTL)!' : `RI=${ref.nLow.toFixed(3)}-${ref.nHigh.toFixed(3)}, Δn=${ref.deltaN.toFixed(3)}`}`);
   }
   if (visited.has(3)) {
     const ax = opticAxisInfo(matId);
-    lines.push(`• [偏光/锥光] ${ax.signLabelZh}${truthMin.opticalActivity ? '（具旋光牛眼干涉心）' : ''}`);
+    lines.push(`* [偏光镜] ${ax.signLabelZh}${truthMin.opticalActivity ? ' (具旋光牛眼干涉心)' : ''}`);
   }
   if (visited.has(4)) {
     const dic = dichroscopeColors(matId, { barrelDeg: 0 });
     const sg = hydrostaticSG(matId);
-    lines.push(`• [二色/比重] ${dic.labelZh}${state.detDunkProgress > 0.8 ? ` · 实测 SG = ${sg.sg.toFixed(2)}` : ' · 浸水可测比重'}`);
+    lines.push(`* [二色/比重] ${dic.labelZh}${state.detDunkProgress > 0.8 ? ` · SG=${sg.sg.toFixed(2)}` : ' · 浸水可测比重'}`);
   }
   el.detEvidenceList.innerHTML = lines.join('<br/>');
 }
@@ -703,13 +901,13 @@ function renderDetectiveSuspects() {
     card.className = 'suspect-card';
     card.innerHTML = `
       <div>
-        <h4>${min.nameZh} <small style="font-weight:700;opacity:0.7;">${min.nameEn}</small></h4>
+        <h4>${min.nameZh} <span style="opacity:0.75;">${min.nameEn}</span></h4>
         <div class="suspect-specs">
-          晶系：${min.systemZh} · ${min.opticSignZh}<br/>
-          手册：RI ${min.riText} | Δn ${Number(min.birefringence).toFixed(3)} | SG ${min.sg}
+          ${min.systemZh} · ${min.opticSignZh}<br/>
+          RI ${min.riText} | Δn ${Number(min.birefringence).toFixed(3)} | SG ${min.sg}
         </div>
       </div>
-      <button type="button" class="verdict-btn">⚖️ 认定为【${min.nameZh.split('（')[0]}】盖章</button>
+      <button type="button" class="verdict-btn">${PIXEL_ICONS.gavel(12)}认定【${min.nameZh.split('（')[0]}】</button>
     `;
     card.querySelector('.verdict-btn').addEventListener('click', () => submitDetectiveVerdict(suspId));
     el.detSuspectGrid.appendChild(card);
@@ -723,7 +921,7 @@ function submitDetectiveVerdict(chosenId) {
 
   if (chosenId === c.truthMineralId) {
     playStampSlam();
-    showStampSlam(`★ 鉴定准确：${truthMin.nameZh.split('（')[0]}!`);
+    showStampSlam(`★ 鉴定准确: ${truthMin.nameZh.split('（')[0]}!`);
 
     if (!state.detSolvedCurrent) {
       state.detSolvedCurrent = true;
@@ -739,12 +937,12 @@ function submitDetectiveVerdict(chosenId) {
     el.detStreakText.textContent = `连胜 ${save.streak}`;
     el.detDebriefBox.hidden = false;
     el.detDebriefBox.innerHTML = `
-      <h4>✅ 结案报告 · 真身锁定：${truthMin.nameZh} (${truthMin.formula})</h4>
-      <p><strong>排他铁证：</strong>${c.decisiveClueZh}</p>
+      <h4>[结案报告] 真身锁定: ${truthMin.nameZh} (${truthMin.formula})</h4>
+      <p><span style="color:var(--riso-cyan);">排他铁证: </span>${c.decisiveClueZh}</p>
       <p>${c.debriefZh}</p>
       <div class="pill-row">
-        <button type="button" id="btnNextCase" class="cta-primary" style="font-size:13px;padding:7px 14px;">▶ 接手下一桩委托</button>
-        <button type="button" id="btnCasePostcard" class="pill-btn" style="background:var(--riso-pink);color:#FAF7F0;">📷 导出结案纪念邮票卡</button>
+        <button type="button" id="btnNextCase" class="cta-primary" style="padding:6px 12px;">${PIXEL_ICONS.play(12)}下一桩委托</button>
+        <button type="button" id="btnCasePostcard" class="pill-btn" style="background:var(--riso-pink);color:#FAF7F0;">${PIXEL_ICONS.camera(12)}结案纪念卡</button>
       </div>
     `;
     document.getElementById('btnNextCase')?.addEventListener('click', () => {
@@ -768,11 +966,11 @@ function submitDetectiveVerdict(chosenId) {
     save.streak = 0;
     persistSaveState(save);
     el.detStreakText.textContent = '连胜 0';
-    showStampSlam(`✕ 误判：并非${chosenMin?.nameZh.split('（')[0] || ''}`, true);
+    showStampSlam(`X 误判: 并非${chosenMin?.nameZh.split('（')[0] || ''}`, true);
     el.detDebriefBox.hidden = false;
     el.detDebriefBox.innerHTML = `
-      <h4 style="color:var(--riso-amber);">⚠️ 鉴定复核驳回：标本与【${chosenMin?.nameZh}】常数不符！</h4>
-      <p>提示：请核对 <strong>② 阿贝折光仪阴影界 / OTL</strong>、<strong>③ 正交偏光全暗 vs 四明四暗 / 锥光正负号</strong> 以及 <strong>④ 静水比重 SG</strong> 后重新盖章。</p>
+      <h4 style="color:var(--riso-amber);">[复核驳回] 标本与【${chosenMin?.nameZh}】常数不符!</h4>
+      <p>提示: 请核对 [2] 折光仪 RI / OTL、[3] 正交消光 vs 锥光光性 以及 [4] 静水比重 SG 后重新盖章。</p>
     `;
   }
 }
@@ -781,12 +979,11 @@ function submitDetectiveVerdict(chosenId) {
 // 2. 24 MINERAL & TWIN CODEX CONTROLLER
 // ============================================================================
 function renderCodexUI() {
-  // System filter bar
   el.codexSystemBar.innerHTML = '';
   const allBtn = document.createElement('button');
   allBtn.type = 'button';
   allBtn.className = `pill-btn ${state.codexSystemFilter === 'all' ? 'is-active' : ''}`;
-  allBtn.textContent = '全部 (24)';
+  allBtn.textContent = '全部(24)';
   allBtn.addEventListener('click', () => {
     playClick();
     state.codexSystemFilter = 'all';
@@ -807,7 +1004,6 @@ function renderCodexUI() {
     el.codexSystemBar.appendChild(btn);
   }
 
-  // Filter minerals
   const q = state.codexSearch.trim().toLowerCase();
   const filtered = MINERAL_CODEX.filter((m) => {
     if (state.codexSystemFilter !== 'all' && m.systemId !== state.codexSystemFilter) return false;
@@ -840,6 +1036,7 @@ function renderCodexUI() {
   document.getElementById('btnCodexConstancy')?.classList.toggle('is-active', state.codexConstancyCard);
 
   renderCodexDossier();
+  applyMobileSubGroupVisibility();
 }
 
 function renderCodexDossier() {
@@ -849,7 +1046,7 @@ function renderCodexDossier() {
 
   el.codexDossier.innerHTML = `
     <div class="monologue-quote">${m.rpgQuote}</div>
-    <div class="readout-grid" style="margin-top:8px;">
+    <div class="readout-grid" style="margin-top:6px;">
       <div class="readout-cell">
         <span class="readout-k">${m.codexNo} · 矿物与化学式</span>
         <span class="readout-v">${m.nameZh} (${m.formula})</span>
@@ -863,21 +1060,21 @@ function renderCodexDossier() {
         <span class="readout-v">RI ${m.riText} | Δn ${Number(m.birefringence).toFixed(3)}</span>
       </div>
       <div class="readout-cell">
-        <span class="readout-k">光性 / 摩氏硬度 / 比重</span>
+        <span class="readout-k">光性 / 硬度 / 比重</span>
         <span class="readout-v">${m.opticSignZh} · H=${m.mohs} · SG=${m.sg}</span>
       </div>
       <div class="readout-cell">
-        <span class="readout-k">单形晶习 (共 ${mesh.totalFaces} 面)</span>
+        <span class="readout-k">单形晶习 (${mesh.totalFaces} 面)</span>
         <span class="readout-v">${m.habitZh}</span>
       </div>
       <div class="readout-cell">
-        <span class="readout-k">经典双晶律与凹角</span>
+        <span class="readout-k">双晶律与凹角</span>
         <span class="readout-v">${m.twinLawZh}</span>
       </div>
     </div>
-    <div class="control-box" style="margin-top:8px;font-size:12px;">
-      <strong>🔬 鉴定师判别要诀：</strong>${m.diagnosticTip}
-      ${sys ? `<div style="margin-top:4px;color:var(--ink-muted);">轴率规则：${sys.axialRule} · ${sys.symmetryTag}</div>` : ''}
+    <div class="control-box" style="margin-top:6px;font-size:12px;">
+      <div>[鉴定要诀] ${m.diagnosticTip}</div>
+      ${sys ? `<div style="color:var(--ink-muted);">轴率: ${sys.axialRule} · ${sys.symmetryTag}</div>` : ''}
     </div>
   `;
 }
@@ -939,7 +1136,7 @@ function renderForgeUI() {
     return;
   }
 
-  // Sub-tab B: Wulff Truncation Forge
+  // Sub-tab B: Wulff Truncation Forge with 4 Riso Pixel Gem Icons
   el.forgeQuestProgress.textContent = `${save.forgedBlueprints.length}/${FORGE_CHALLENGES.length} 已锻造`;
   el.forgeBlueprintBar.innerHTML = '';
   for (const bp of FORGE_CHALLENGES) {
@@ -947,7 +1144,7 @@ function renderForgeUI() {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = `pill-btn ${bp.id === state.activeBlueprintId ? 'is-active' : ''} ${solved ? 'is-solved' : ''}`;
-    btn.textContent = `${solved ? '✓ ' : ''}${bp.titleZh.replace(/^蓝图\s*\d+\s*·\s*/, '')}`;
+    btn.innerHTML = `${solved ? PIXEL_ICONS.check(10) : ''}${bp.titleZh.replace(/^蓝图\s*\d+\s*·\s*/, '')}`;
     btn.addEventListener('click', () => {
       playClick();
       state.activeBlueprintId = bp.id;
@@ -961,17 +1158,31 @@ function renderForgeUI() {
     btn.classList.toggle('is-active', btn.dataset.forgeMode === state.forgeMode);
   });
 
-  // Update dynamic form ink labels for Cubic / Tetragonal / Hexagonal
   const lblMap = state.forgeMode === 'tetragonal'
-    ? ['■ 粉红墨 · 四方柱 {100}', '▲ 钴蓝墨 · 四方双锥 {111}', '◆ 黄绿墨 · 次四方柱 {110}', '⬡ 珊瑚墨 · 平行双面 {001}']
+    ? [
+      `${PIXEL_ICONS.gemPink100(16)} 粉红墨 · 四方柱 {100}`,
+      `${PIXEL_ICONS.gemBlue111(16)} 钴蓝墨 · 四方双锥 {111}`,
+      `${PIXEL_ICONS.gemLime110(16)} 黄绿墨 · 次四方柱 {110}`,
+      `${PIXEL_ICONS.gemCoral211(16)} 珊瑚墨 · 平行双面 {001}`,
+    ]
     : state.forgeMode === 'hexagonal'
-      ? ['■ 粉红墨 · 六方柱 {10-10}', '▲ 钴蓝墨 · 六方双锥 {10-11}', '◆ 黄绿墨 · 平行双面 {0001}', '⬡ 珊瑚墨 · 第二六方柱 {11-20}']
-      : ['■ 粉红墨 · 立方体 {100}', '▲ 钴蓝墨 · 八面体 {111}', '◆ 黄绿墨 · 菱形十二面体 {110}', '⬡ 珊瑚墨 · 四角三八面体 {211}'];
+      ? [
+        `${PIXEL_ICONS.gemPink100(16)} 粉红墨 · 六方柱 {10-10}`,
+        `${PIXEL_ICONS.gemBlue111(16)} 钴蓝墨 · 六方双锥 {10-11}`,
+        `${PIXEL_ICONS.gemLime110(16)} 黄绿墨 · 平行双面 {0001}`,
+        `${PIXEL_ICONS.gemCoral211(16)} 珊瑚墨 · 第二六方柱 {11-20}`,
+      ]
+      : [
+        `${PIXEL_ICONS.gemPink100(16)} 粉红墨 · 立方体 {100}`,
+        `${PIXEL_ICONS.gemBlue111(16)} 钴蓝墨 · 八面体 {111}`,
+        `${PIXEL_ICONS.gemLime110(16)} 黄绿墨 · 十二面体 {110}`,
+        `${PIXEL_ICONS.gemCoral211(16)} 珊瑚墨 · 三八面体 {211}`,
+      ];
 
-  document.getElementById('lblD100').textContent = lblMap[0];
-  document.getElementById('lblD111').textContent = lblMap[1];
-  document.getElementById('lblD110').textContent = lblMap[2];
-  document.getElementById('lblD211').textContent = lblMap[3];
+  setHtmlById('lblD100', lblMap[0]);
+  setHtmlById('lblD111', lblMap[1]);
+  setHtmlById('lblD110', lblMap[2]);
+  setHtmlById('lblD211', lblMap[3]);
 
   document.getElementById('sliderD100').value = String(Math.round(state.d100 * 100));
   document.getElementById('sliderD111').value = String(Math.round(state.d111 * 100));
@@ -979,6 +1190,7 @@ function renderForgeUI() {
   document.getElementById('sliderD211').value = String(Math.round(state.d211 * 100));
 
   updateForgeMatchMeter();
+  applyMobileSubGroupVisibility();
 }
 
 function updateStamps12Selection() {
@@ -989,10 +1201,10 @@ function updateStamps12Selection() {
   el.stampFormDetail.innerHTML = `
     <div class="slider-label">
       <span>邮票 #${form.stampNo} · ${form.nameZh} (${form.miller})</span>
-      <span class="slider-val">${form.systemZh} · ${form.meshFaces} 晶面</span>
+      <span class="slider-val">${form.systemZh} · ${form.meshFaces}面</span>
     </div>
     <div style="font-size:12px;color:var(--ink-sub);">${form.noteZh}</div>
-    <div style="font-size:11.5px;color:var(--ink-muted);">代表矿物：${form.representativeZh}</div>
+    <div style="font-size:12px;color:var(--ink-muted);">代表矿物: ${form.representativeZh}</div>
   `;
 }
 
@@ -1010,7 +1222,6 @@ function updateForgeMatchMeter() {
     mode: state.forgeMode,
   });
 
-  // Check 26-facet achievement
   if (
     state.forgeMode === 'cubic'
     && built.byForm['{100}'] === 6
@@ -1026,8 +1237,7 @@ function updateForgeMatchMeter() {
 
   const bp = FORGE_CHALLENGES.find((c) => c.id === state.activeBlueprintId) || FORGE_CHALLENGES[0];
   let matchedForms = 0;
-  const keys = ['{100}', '{111}', '{110}', '{211}'];
-  for (const k of keys) {
+  for (const k of ['{100}', '{111}', '{110}', '{211}']) {
     if ((built.byForm[k] || 0) === (bp.expectedByForm[k] || 0)) matchedForms += 1;
   }
   const exactMatch = state.forgeMode === bp.mode && matchedForms === 4 && built.totalFaces === bp.totalFaces;
@@ -1038,7 +1248,7 @@ function updateForgeMatchMeter() {
     awardXp(bp.xpReward || 100);
     persistSaveState(save);
     playForgeSuccess();
-    showStampSlam(`⚒️ 蓝图达成：${bp.totalFaces}面聚形!`);
+    showStampSlam(`★ 蓝图达成: ${bp.totalFaces}面聚形!`);
     if (save.forgedBlueprints.length >= 3) {
       unlockAchievementStamp('stamp_forge_50');
     }
@@ -1048,29 +1258,39 @@ function updateForgeMatchMeter() {
   el.forgeMatchBox.innerHTML = `
     <div class="slider-label">
       <span style="color:var(--riso-lime);">${bp.titleZh}</span>
-      <span style="font-family:var(--font-mono);color:var(--riso-cyan);">${built.totalFaces} / ${bp.totalFaces} 面</span>
+      <span style="color:var(--riso-cyan);">${built.totalFaces} / ${bp.totalFaces} 面</span>
     </div>
     <div class="meter-bar-track">
       <div class="meter-bar-fill" style="width:${pct}%;"></div>
     </div>
-    <div style="font-size:12px;">当前聚形组成：<strong>${built.formulaTag}</strong> ${exactMatch ? '✅ 已完美契合蓝图！' : ''}</div>
-    <div style="font-size:11.5px;color:#B5BDDD;">锻造提示：${bp.hintZh}</div>
+    <div style="font-size:12px;">当前聚形: <span style="color:var(--riso-lime);">${built.formulaTag}</span> ${exactMatch ? '[已完美契合蓝图!]' : ''}</div>
+    <div style="font-size:12px;color:#B5BDDD;">提示: ${bp.hintZh}</div>
   `;
 }
 
 // ============================================================================
-// 4. PRISMA OPTICS DARKROOM BENCH CONTROLLER
+// 4. PRISMA OPTICS DARKROOM BENCH (100% PIXEL MATERIAL PILLS, NO <SELECT>)
 // ============================================================================
-function buildMaterialSelectHtml(idAttr, currentId, listIds) {
-  const options = listIds.map((id) => {
+function buildMaterialPillsHtml(groupAttr, currentId, listIds) {
+  const btns = listIds.map((id) => {
     const mat = getMaterial(id);
-    return `<option value="${id}" ${id === currentId ? 'selected' : ''}>${mat.nameZh} (${mat.en})</option>`;
+    const shortZh = mat.nameZh.split('（')[0].replace('重火石棱镜玻璃', '火石棱镜');
+    return `<button type="button" class="pill-btn ${id === currentId ? 'is-active' : ''}" data-${groupAttr}="${id}">${shortZh}</button>`;
   }).join('');
-  return `<select id="${idAttr}" class="search-input" style="padding:5px 8px;">${options}</select>`;
+  return `<div class="pill-row">${btns}</div>`;
+}
+
+function wireMaterialPills(groupAttr, onPick) {
+  el.opticsControlsBody.querySelectorAll(`[data-${groupAttr}]`).forEach((btn) => {
+    btn.addEventListener('click', () => {
+      playClick();
+      onPick(btn.getAttribute(`data-${groupAttr}`));
+    });
+  });
 }
 
 function renderOpticsUI() {
-  el.opticsBenchTabs.querySelectorAll('.subtab-btn').forEach((btn) => {
+  el.opticsBenchTabs?.querySelectorAll('.subtab-btn').forEach((btn) => {
     btn.classList.toggle('is-active', btn.dataset.bench === state.opticsBench);
   });
 
@@ -1080,16 +1300,16 @@ function renderOpticsUI() {
     const matList = ['flint_prism', 'diamond', 'rutile', 'zircon', 'ruby', 'quartz', 'calcite', 'fluorite'];
     el.opticsControlsBody.innerHTML = `
       <div class="pill-row">
-        <button type="button" id="optBtnPrism" class="pill-btn ${state.dispSubMode === 'prism' ? 'is-active' : ''}">60° 色散棱镜光谱靶</button>
-        <button type="button" id="optBtnTir" class="pill-btn ${state.dispSubMode === 'tir' ? 'is-active' : ''}">晶内全内反射临界角 θc</button>
+        <button type="button" id="optBtnPrism" class="pill-btn ${state.dispSubMode === 'prism' ? 'is-active' : ''}">60°色散棱镜光谱靶</button>
+        <button type="button" id="optBtnTir" class="pill-btn ${state.dispSubMode === 'tir' ? 'is-active' : ''}">晶内全反射临界角 θc</button>
       </div>
       <div class="slider-row">
-        <div class="slider-label"><span>光学介质选择</span><span class="slider-val">激光连击 ${state.dispComboScore} PTS</span></div>
-        ${buildMaterialSelectHtml('optDispMat', state.dispMaterialId, matList)}
+        <div class="slider-label"><span>光学介质卡带</span><span class="slider-val">连击 ${state.dispComboScore} PTS</span></div>
+        ${buildMaterialPillsHtml('disp-mat', state.dispMaterialId, matList)}
       </div>
       <div class="slider-row">
         <div class="slider-label">
-          <span>激光入射角 θ₁</span>
+          <span>激光入射角 θ1</span>
           <span class="slider-val" id="optIncVal">${state.dispIncidentDeg}°</span>
         </div>
         <input type="range" id="optIncSlider" min="12" max="78" value="${state.dispIncidentDeg}" />
@@ -1114,10 +1334,9 @@ function renderOpticsUI() {
       state.dispSubMode = 'tir';
       renderOpticsUI();
     });
-    document.getElementById('optDispMat')?.addEventListener('change', (e) => {
-      playClick();
-      state.dispMaterialId = e.target.value;
-      updateOpticsReadouts();
+    wireMaterialPills('disp-mat', (picked) => {
+      state.dispMaterialId = picked;
+      renderOpticsUI();
     });
     document.getElementById('optIncSlider')?.addEventListener('input', (e) => {
       state.dispIncidentDeg = Number(e.target.value);
@@ -1135,11 +1354,11 @@ function renderOpticsUI() {
     el.opticsControlsBody.innerHTML = `
       <div class="slider-row">
         <div class="slider-label"><span>双折射晶片选择</span></div>
-        ${buildMaterialSelectHtml('optCalMat', state.calciteMaterialId, matList)}
+        ${buildMaterialPillsHtml('cal-mat', state.calciteMaterialId, matList)}
       </div>
       <div class="slider-row">
         <div class="slider-label">
-          <span>解理菱面体旋转方位角 θ</span>
+          <span>解理菱面体方位角 θ</span>
           <span class="slider-val" id="optCalRotVal">${state.calciteRotDeg}°</span>
         </div>
         <input type="range" id="optCalRotSlider" min="0" max="360" value="${state.calciteRotDeg}" />
@@ -1152,21 +1371,20 @@ function renderOpticsUI() {
         <input type="range" id="optCalThickSlider" min="10" max="200" value="${Math.round(state.calciteThicknessMm * 10)}" />
       </div>
       <div class="pill-row">
-        <button type="button" id="optCalAnaBtn" class="pill-btn ${state.calciteAnalyzerOn ? 'is-active' : ''}">插入偏振检偏镜 (验证 o/e 正交消光)</button>
+        <button type="button" id="optCalAnaBtn" class="pill-btn ${state.calciteAnalyzerOn ? 'is-active' : ''}">插入偏振检偏镜 (o/e 正交消光)</button>
       </div>
       ${state.calciteAnalyzerOn ? `
       <div class="slider-row">
         <div class="slider-label">
-          <span>检偏镜偏振轴角度</span>
+          <span>检偏镜偏振轴角</span>
           <span class="slider-val" id="optCalAnaVal">${state.calciteAnalyzerDeg}°</span>
         </div>
         <input type="range" id="optCalAnaSlider" min="0" max="180" value="${state.calciteAnalyzerDeg}" />
       </div>` : ''}
     `;
-    document.getElementById('optCalMat')?.addEventListener('change', (e) => {
-      playClick();
-      state.calciteMaterialId = e.target.value;
-      updateOpticsReadouts();
+    wireMaterialPills('cal-mat', (picked) => {
+      state.calciteMaterialId = picked;
+      renderOpticsUI();
     });
     document.getElementById('optCalRotSlider')?.addEventListener('input', (e) => {
       state.calciteRotDeg = Number(e.target.value);
@@ -1196,11 +1414,11 @@ function renderOpticsUI() {
     el.opticsControlsBody.innerHTML = `
       <div class="slider-row">
         <div class="slider-label"><span>薄片矿物选择</span></div>
-        ${buildMaterialSelectHtml('optMicMat', state.michelMaterialId, matList)}
+        ${buildMaterialPillsHtml('mic-mat', state.michelMaterialId, matList)}
       </div>
       <div class="slider-row">
         <div class="slider-label">
-          <span>正交偏光载物台角度 θ</span>
+          <span>正交偏光载物台角 θ</span>
           <span class="slider-val" id="optMicStageVal">${state.michelStageDeg}°</span>
         </div>
         <input type="range" id="optMicStageSlider" min="0" max="360" value="${state.michelStageDeg}" />
@@ -1213,13 +1431,12 @@ function renderOpticsUI() {
         <input type="range" id="optMicThickSlider" min="5" max="150" value="${state.michelThicknessUm}" />
       </div>
       <div class="pill-row">
-        <button type="button" id="optMicGypBtn" class="pill-btn ${state.michelGypsumOn ? 'is-active' : ''}">插入 +530nm 一级红石膏试板 (加减色实验)</button>
+        <button type="button" id="optMicGypBtn" class="pill-btn ${state.michelGypsumOn ? 'is-active' : ''}">+530nm 一级红石膏试板 (加减色)</button>
       </div>
     `;
-    document.getElementById('optMicMat')?.addEventListener('change', (e) => {
-      playClick();
-      state.michelMaterialId = e.target.value;
-      updateOpticsReadouts();
+    wireMaterialPills('mic-mat', (picked) => {
+      state.michelMaterialId = picked;
+      renderOpticsUI();
     });
     document.getElementById('optMicStageSlider')?.addEventListener('input', (e) => {
       state.michelStageDeg = Number(e.target.value);
@@ -1242,11 +1459,11 @@ function renderOpticsUI() {
     el.opticsControlsBody.innerHTML = `
       <div class="slider-row">
         <div class="slider-label"><span>锥光与光率体标本</span></div>
-        ${buildMaterialSelectHtml('optConoMat', state.conoMaterialId, matList)}
+        ${buildMaterialPillsHtml('cono-mat', state.conoMaterialId, matList)}
       </div>
       <div class="slider-row">
         <div class="slider-label">
-          <span>载物台旋转角 θ (观察二轴晶双曲线分合)</span>
+          <span>载物台旋转角 θ (双曲线分合)</span>
           <span class="slider-val" id="optConoStageVal">${state.conoStageDeg}°</span>
         </div>
         <input type="range" id="optConoStageSlider" min="0" max="360" value="${state.conoStageDeg}" />
@@ -1259,15 +1476,14 @@ function renderOpticsUI() {
         <input type="range" id="optConoThickSlider" min="3" max="45" value="${Math.round(state.conoThicknessMm * 10)}" />
       </div>
       <div class="pill-row">
-        <button type="button" id="optConoGypBtn" class="pill-btn ${state.conoGypsumOn ? 'is-active' : ''}">+530nm 石膏试板测定正负光性</button>
+        <button type="button" id="optConoGypBtn" class="pill-btn ${state.conoGypsumOn ? 'is-active' : ''}">+530nm 石膏板测光性正负</button>
         ${state.conoMaterialId === 'quartz' ? `
-        <button type="button" id="optConoHandBtn" class="pill-btn">${state.conoHandedness > 0 ? '右旋石英 (D-Quartz)' : '左旋石英 (L-Quartz)'}</button>
+        <button type="button" id="optConoHandBtn" class="pill-btn">${state.conoHandedness > 0 ? '右旋石英 D' : '左旋石英 L'}</button>
         ` : ''}
       </div>
     `;
-    document.getElementById('optConoMat')?.addEventListener('change', (e) => {
-      playClick();
-      state.conoMaterialId = e.target.value;
+    wireMaterialPills('cono-mat', (picked) => {
+      state.conoMaterialId = picked;
       if (state.conoMaterialId === 'quartz') unlockAchievementStamp('stamp_quartz_bullseye');
       renderOpticsUI();
     });
@@ -1316,8 +1532,8 @@ function updateOpticsReadouts() {
         <span class="readout-v">${rRed.n.toFixed(4)} / ${rBlue.n.toFixed(4)}</span>
       </div>
       <div class="readout-cell">
-        <span class="readout-k">全反射临界角 θc = arcsin(1/n)</span>
-        <span class="readout-v">${fan.criticalDeg.toFixed(2)}° ${tir.tir && state.dispSubMode === 'tir' ? '(TIR 已触发!)' : ''}</span>
+        <span class="readout-k">临界角 θc = arcsin(1/n)</span>
+        <span class="readout-v">${fan.criticalDeg.toFixed(2)}° ${tir.tir && state.dispSubMode === 'tir' ? '(TIR!)' : ''}</span>
       </div>
     `;
   } else if (b === 'calcite') {
@@ -1334,8 +1550,8 @@ function updateOpticsReadouts() {
         <span class="readout-v">${sp.nO.toFixed(4)} / ${sp.nE.toFixed(4)}</span>
       </div>
       <div class="readout-cell">
-        <span class="readout-k">坡印廷走离角 & 双像间距</span>
-        <span class="readout-v">${sp.walkoffDeg.toFixed(2)}° · Δx=${sp.separationMm.toFixed(2)} mm</span>
+        <span class="readout-k">走离角 & 双像间距</span>
+        <span class="readout-v">${sp.walkoffDeg.toFixed(2)}° · Δx=${sp.separationMm.toFixed(2)}mm</span>
       </div>
     `;
   } else if (b === 'michel') {
@@ -1346,12 +1562,12 @@ function updateOpticsReadouts() {
     });
     el.opticsReadoutBody.innerHTML = `
       <div class="readout-cell">
-        <span class="readout-k">标本光程差 Γ = d · Δn</span>
+        <span class="readout-k">光程差 Γ = d · Δn</span>
         <span class="readout-v">${ret.retardationNm.toFixed(0)} nm (Δn=${ret.deltaN.toFixed(4)})</span>
       </div>
       <div class="readout-cell">
         <span class="readout-k">当前干涉色级序</span>
-        <span class="readout-v">${ret.orderLabel} · 透射 ${(ret.transmission * 100).toFixed(0)}%</span>
+        <span class="readout-v">${ret.orderLabel} · I=${(ret.transmission * 100).toFixed(0)}%</span>
       </div>
     `;
   } else {
@@ -1359,7 +1575,7 @@ function updateOpticsReadouts() {
     const mat = getMaterial(state.conoMaterialId);
     el.opticsReadoutBody.innerHTML = `
       <div class="readout-cell">
-        <span class="readout-k">光率体类型与光性符号</span>
+        <span class="readout-k">光率体类型与光性</span>
         <span class="readout-v">${ax.signLabelZh} ${ax.twoVDeg > 0 ? `(2V=${ax.twoVDeg.toFixed(1)}°)` : ''}</span>
       </div>
       <div class="readout-cell">
@@ -1371,14 +1587,14 @@ function updateOpticsReadouts() {
 }
 
 // ============================================================================
-// STAMP BOOK & SOUVENIR POSTCARD MODALS
+// STAMP BOOK, SUVA QR & SOUVENIR POSTCARD MODALS
 // ============================================================================
 function openStampBookModal() {
   const rank = computePlayerRank(save.xp);
   const nextRank = PLAYER_RANKS.find((r) => r.minXp > save.xp);
   el.stampRankSummary.innerHTML = `
     <div class="slider-label">
-      <span>当前头衔：<strong>${rank.titleZh}</strong> (${rank.titleEn})</span>
+      <span>当前头衔: ${rank.titleZh} (${rank.titleEn})</span>
       <span class="slider-val">${save.xp} XP ${nextRank ? `/ 下一级 ${nextRank.minXp} XP` : '(最高宗师头衔!)'}</span>
     </div>
     <div style="font-size:12px;color:var(--ink-sub);">${rank.perkZh}</div>
@@ -1390,8 +1606,8 @@ function openStampBookModal() {
     const div = document.createElement('div');
     div.className = `ach-stamp-item ${unlocked ? 'is-unlocked' : ''}`;
     div.innerHTML = `
-      <div style="font-family:var(--font-mono);font-size:10.5px;font-weight:900;color:${st.inkColor};">
-        ${unlocked ? '★ STAMPED' : '○ LOCKED'} · ${st.code}
+      <div style="font-size:12px;color:${st.inkColor};">
+        ${unlocked ? '[★ STAMPED]' : '[LOCKED]'} · ${st.code}
       </div>
       <h4>${st.titleZh} (+${st.xpBonus} XP)</h4>
       <p>${st.descZh}</p>
@@ -1440,7 +1656,9 @@ function getCurrentContextMineral() {
       nameZh: mat.nameZh,
       nameEn: mat.en,
       systemZh: `光学实验台 · ${state.opticsBench.toUpperCase()}`,
-      opticLabel: `SG ${mat.sg} · n=${mat.indices.map((n) => n.toFixed(3)).join('/')}`,
+      opticLabel: mat.opticClass === 'isotropic'
+        ? `SG ${mat.sg} · n=${mat.indices[0].toFixed(3)} (均质单折)`
+        : `SG ${mat.sg} · n=${mat.indices[0].toFixed(3)}-${mat.indices[mat.indices.length - 1].toFixed(3)}`,
       diagnosticTip: mat.noteZh,
     };
   }
@@ -1452,7 +1670,7 @@ function triggerPostcardExport() {
   unlockAchievementStamp('stamp_suva_archivist');
   const rank = computePlayerRank(save.xp);
   const modeMap = {
-    HOME: 'VOL.01 // MASTER 26-FACET CRYSTAL',
+    HOME: 'VOL.02 // MASTER 26-FACET CRYSTAL',
     DETECTIVE: `CH.01 // GEM DETECTIVE · ${state.activeCase.caseCode}`,
     CODEX: 'CH.02 // 24 MINERAL & TWIN ARCHIVE',
     FORGE: 'CH.03 // ONE-INK-PER-FORM HABIT FORGE',
@@ -1460,12 +1678,12 @@ function triggerPostcardExport() {
   };
   const dataUrl = exportPixelPostcard({
     canvas: el.pixelCanvas,
-    modeTitle: modeMap[state.view] || 'SUVA PIXEL CRYSTAL',
+    modeTitle: modeMap[state.view] || 'SUVA PIXEL CRYSTAL V2',
     mineral: getCurrentContextMineral(),
     rankTitle: rank.titleZh,
     stampsUnlocked: save.stamps.length,
     totalStamps: ACHIEVEMENT_STAMPS.length,
-    statsText: `经验值 ${save.xp} XP · 连胜 ${save.streak} · SUVA 苏哇科技晶体光学纪念卡`,
+    statsText: `经验值 ${save.xp} XP · 连胜 ${save.streak}\nSUVA 苏哇科技 · 纯像素典藏纪念卡`,
     theme: state.theme,
     autoDownload: true,
   });
@@ -1530,14 +1748,14 @@ el.pixelCanvas.addEventListener('pointerup', (e) => {
         if (f1) {
           const cosA = Math.max(-1, Math.min(1, f1.normal[0] * picked.normal[0] + f1.normal[1] * picked.normal[1] + f1.normal[2] * picked.normal[2]));
           const deg = ((Math.acos(cosA) * 180) / Math.PI).toFixed(1);
-          el.faceHudChip.textContent = `司特诺测角：${f1.miller} ∠ ${picked.miller} 法线角 Δθ = ${deg}° (内二面角 ${(180 - Number(deg)).toFixed(1)}°)`;
+          el.faceHudChip.textContent = `司特诺测角: ${f1.miller} ∠ ${picked.miller} Δθ=${deg}° (内角 ${(180 - Number(deg)).toFixed(1)}°)`;
           el.faceHudChip.hidden = false;
           unlockAchievementStamp('stamp_steno_law');
         }
       } else {
         state.selectedFaceId = picked.faceId;
         state.secondFaceId = -1;
-        el.faceHudChip.textContent = `拾取晶面：${picked.miller} · ${picked.formNameZh}（再点另一晶面可测夹角）`;
+        el.faceHudChip.textContent = `拾取晶面: ${picked.miller} · ${picked.formNameZh}`;
         el.faceHudChip.hidden = false;
       }
     } else {
@@ -1547,8 +1765,12 @@ el.pixelCanvas.addEventListener('pointerup', (e) => {
 });
 
 // ============================================================================
-// WIRE TOPBAR, BUTTONS, SLIDERS & KEYBOARD SHORTCUTS
+// WIRE TOPBAR, BOTTOM DOCK, MODALS, SLIDERS & KEYBOARD SHORTCUTS
 // ============================================================================
+window.addEventListener('resize', () => {
+  syncStageAndHandheldLayout();
+});
+
 document.getElementById('btnBrandHome')?.addEventListener('click', () => {
   playClick();
   switchView('HOME');
@@ -1578,6 +1800,19 @@ document.querySelectorAll('#modeNav .mode-tab').forEach((btn) => {
   });
 });
 
+el.mobileBottomDock?.querySelectorAll('[data-dock-mode]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    playClick();
+    switchView(btn.dataset.dockMode);
+  });
+});
+
+el.btnHandheldToggle?.addEventListener('click', () => {
+  playClick();
+  state.forceHandheld = !state.forceHandheld;
+  syncStageAndHandheldLayout();
+});
+
 el.btnThemeToggle?.addEventListener('click', () => {
   playClick();
   setTheme(state.theme === 'riso' ? 'dark' : 'riso');
@@ -1585,8 +1820,21 @@ el.btnThemeToggle?.addEventListener('click', () => {
 
 el.btnBgmToggle?.addEventListener('click', () => {
   const on = toggleBgm();
-  el.btnBgmToggle.textContent = on ? '♪ BGM ON' : '♪ BGM';
+  const lbl = document.getElementById('lblBgm');
+  if (lbl) lbl.textContent = on ? 'ON' : '8BIT';
   el.btnBgmToggle.classList.toggle('is-on', on);
+});
+
+document.getElementById('btnSuvaQr')?.addEventListener('click', () => {
+  playClick();
+  if (el.modalSuvaQr) el.modalSuvaQr.hidden = false;
+});
+document.getElementById('btnCloseSuvaQr')?.addEventListener('click', () => {
+  playClick();
+  if (el.modalSuvaQr) el.modalSuvaQr.hidden = true;
+});
+el.modalSuvaQr?.addEventListener('click', (e) => {
+  if (e.target === el.modalSuvaQr) el.modalSuvaQr.hidden = true;
 });
 
 document.getElementById('btnStampBook')?.addEventListener('click', () => {
@@ -1597,12 +1845,19 @@ document.getElementById('btnCloseStamps')?.addEventListener('click', () => {
   playClick();
   el.modalStamps.hidden = true;
 });
+el.modalStamps?.addEventListener('click', (e) => {
+  if (e.target === el.modalStamps) el.modalStamps.hidden = true;
+});
+
 document.getElementById('btnExportPostcard')?.addEventListener('click', () => {
   triggerPostcardExport();
 });
 document.getElementById('btnClosePostcard')?.addEventListener('click', () => {
   playClick();
   el.modalPostcard.hidden = true;
+});
+el.modalPostcard?.addEventListener('click', (e) => {
+  if (e.target === el.modalPostcard) el.modalPostcard.hidden = true;
 });
 
 // Stage Quick Toolbar
@@ -1647,12 +1902,14 @@ el.btnQuickAxes?.addEventListener('click', () => {
 });
 
 // Detective Events
-document.getElementById('btnEndlessCase')?.addEventListener('click', () => {
+const triggerRandomEndless = () => {
   playClick();
   save.endlessSeed += 1;
   persistSaveState(save);
   loadDetectiveCase(generateEndlessCase(save.endlessSeed));
-});
+};
+document.getElementById('btnEndlessCase')?.addEventListener('click', triggerRandomEndless);
+document.getElementById('btnMobileEndless')?.addEventListener('click', triggerRandomEndless);
 
 el.detStationTabs?.querySelectorAll('.subtab-btn').forEach((btn) => {
   btn.addEventListener('click', () => {
@@ -1700,7 +1957,8 @@ el.codexExplodeSlider?.addEventListener('input', (e) => {
   el.codexExplodeVal.textContent = `${e.target.value}%`;
   renderCodexDossier();
 });
-document.getElementById('btnSendToOptics')?.addEventListener('click', () => {
+
+const sendCurrentCodexToOptics = () => {
   playClick();
   const m = CODEX_MAP.get(state.codexMineralId);
   if (m && OPTICAL_MATERIALS[m.materialId]) {
@@ -1710,19 +1968,24 @@ document.getElementById('btnSendToOptics')?.addEventListener('click', () => {
     state.dispMaterialId = m.materialId;
   }
   state.opticsBench = 'conoscope';
+  state.mobileSubGroup.OPTICS = 'opt-conoscope';
   switchView('OPTICS');
-});
+};
+document.getElementById('btnSendToOptics')?.addEventListener('click', sendCurrentCodexToOptics);
+document.getElementById('btnSendToOpticsMob')?.addEventListener('click', sendCurrentCodexToOptics);
 
 // Forge Events
 document.getElementById('btnForgeTabStamps')?.addEventListener('click', () => {
   playClick();
   state.forgeSubTab = 'stamps';
+  state.mobileSubGroup.FORGE = 'forge-stamps';
   clearFaceSelection();
   renderForgeUI();
 });
 document.getElementById('btnForgeTabBuild')?.addEventListener('click', () => {
   playClick();
   state.forgeSubTab = 'build';
+  state.mobileSubGroup.FORGE = 'forge-cut';
   clearFaceSelection();
   renderForgeUI();
 });
@@ -1759,18 +2022,20 @@ el.opticsBenchTabs?.querySelectorAll('.subtab-btn').forEach((btn) => {
   btn.addEventListener('click', () => {
     playClick();
     state.opticsBench = btn.dataset.bench;
+    state.mobileSubGroup.OPTICS = `opt-${state.opticsBench}`;
     renderOpticsUI();
   });
 });
 
-// Keyboard Arcade Shortcuts (1/2/3/4, Space, T, M, P, Escape)
+// Keyboard Arcade Shortcuts (0/1/2/3/4, Space, T, M, P, Escape)
 window.addEventListener('keydown', (e) => {
   const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
-  if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+  if (tag === 'input' || tag === 'textarea') return;
 
   if (e.key === 'Escape') {
     el.modalStamps.hidden = true;
     el.modalPostcard.hidden = true;
+    if (el.modalSuvaQr) el.modalSuvaQr.hidden = true;
     return;
   }
   if (e.key === '0') {
@@ -1793,7 +2058,8 @@ window.addEventListener('keydown', (e) => {
     setTheme(state.theme === 'riso' ? 'dark' : 'riso');
   } else if (e.key === 'm' || e.key === 'M') {
     const on = toggleBgm();
-    el.btnBgmToggle.textContent = on ? '♪ BGM ON' : '♪ BGM';
+    const lbl = document.getElementById('lblBgm');
+    if (lbl) lbl.textContent = on ? 'ON' : '8BIT';
     el.btnBgmToggle.classList.toggle('is-on', on);
   } else if (e.key === 'p' || e.key === 'P') {
     triggerPostcardExport();
@@ -1833,7 +2099,7 @@ function renderFrame(nowMs) {
     engine.clearBackground({
       theme: state.theme,
       accent: 'coral',
-      headerText: 'PRISMA · PIXEL OPTICS · VOL.01',
+      headerText: 'SUVA · PIXEL CRYSTAL · V2.0',
       headerStyle: 'lime',
       footerLeft: 'SUVA · PIXEL CRYSTAL',
       footerMid: '26 FACETS // {100}+{111}+{110}',
@@ -1858,8 +2124,8 @@ function renderFrame(nowMs) {
         badge: 'STENO 1669 · 120°=120°',
       },
     });
-    el.telemetryLeft.textContent = '26面终极聚形晶 · {100}×6 + {111}×8 + {110}×12';
-    el.telemetryRight.textContent = isBgmPlaying() ? '♪ 120BPM GLASS-CHIPTUNE' : '480×270 RISO STAGE';
+    el.telemetryLeft.textContent = '26面终极聚形晶 · {100}x6 + {111}x8 + {110}x12';
+    el.telemetryRight.textContent = isBgmPlaying() ? '120BPM GLASS-CHIPTUNE' : '480x270 PURE PIXEL';
   } else if (state.view === 'DETECTIVE') {
     const truthId = state.activeCase.truthMineralId;
     const truthMin = CODEX_MAP.get(truthId) || MINERAL_CODEX[0];
@@ -1943,7 +2209,7 @@ function renderFrame(nowMs) {
       });
     }
     el.telemetryLeft.textContent = `${state.activeCase.caseCode} · ${state.activeCase.titleZh}`;
-    el.telemetryRight.textContent = `当前取证：第 ${state.detStation} 站`;
+    el.telemetryRight.textContent = `当前取证: 第 ${state.detStation} 站`;
   } else if (state.view === 'CODEX') {
     const m = CODEX_MAP.get(state.codexMineralId) || MINERAL_CODEX[0];
     const mesh = buildMineralMesh(m.id, { variant: state.codexVariant, explode: state.codexExplode });
@@ -2000,8 +2266,8 @@ function renderFrame(nowMs) {
         hoveredFaceId: state.hoveredFaceId,
         secondFaceId: state.secondFaceId,
       });
-      el.telemetryLeft.textContent = `单形邮票 #${f.stampNo}：${f.nameZh}`;
-      el.telemetryRight.textContent = `代表矿物：${f.representativeZh}`;
+      el.telemetryLeft.textContent = `单形邮票 #${f.stampNo}: ${f.nameZh}`;
+      el.telemetryRight.textContent = `代表矿物: ${f.representativeZh}`;
     } else {
       const built = buildForgeCombination({
         d100: state.d100,
@@ -2030,7 +2296,7 @@ function renderFrame(nowMs) {
         hoveredFaceId: state.hoveredFaceId,
         secondFaceId: state.secondFaceId,
       });
-      el.telemetryLeft.textContent = `一色一单形：${built.formulaTag}`;
+      el.telemetryLeft.textContent = `一色一单形: ${built.formulaTag}`;
       el.telemetryRight.textContent = `晶棱法线角 ${built.dihedralSample.pair} = ${built.dihedralSample.normalDeg}°`;
     }
   } else if (state.view === 'OPTICS') {
@@ -2060,7 +2326,7 @@ function renderFrame(nowMs) {
       }
       lastHitCount = res.hits.length;
       el.telemetryLeft.textContent = `${mat.nameZh} · 入射角 ${state.dispIncidentDeg}°`;
-      el.telemetryRight.textContent = `点亮光谱传感器：${res.hits.length}/3 · 积分 ${state.dispComboScore}`;
+      el.telemetryRight.textContent = `光谱靶: ${res.hits.length}/3 · ${state.dispComboScore} PTS`;
     } else if (state.opticsBench === 'calcite') {
       const mat = getMaterial(state.calciteMaterialId);
       const sp = calciteDoubleRay(state.calciteMaterialId, {
@@ -2079,8 +2345,8 @@ function renderFrame(nowMs) {
         materialLabel: cleanMatTag(mat.en),
         theme: state.theme,
       });
-      el.telemetryLeft.textContent = `${mat.nameZh} · o光与e光坡印廷走离`;
-      el.telemetryRight.textContent = sp.isIsotropic ? '均质单像 (无走离)' : `双像分离 Δx = ${sp.separationMm.toFixed(2)} mm`;
+      el.telemetryLeft.textContent = `${mat.nameZh} · o光与e光走离`;
+      el.telemetryRight.textContent = sp.isIsotropic ? '均质单像' : `Δx = ${sp.separationMm.toFixed(2)} mm`;
     } else if (state.opticsBench === 'michel') {
       const mat = getMaterial(state.michelMaterialId);
       const ret = orthoscopicRetardation(state.michelMaterialId, {
@@ -2096,7 +2362,7 @@ function renderFrame(nowMs) {
         materialLabel: cleanMatTag(mat.en),
         theme: state.theme,
       });
-      el.telemetryLeft.textContent = `${mat.nameZh} · 光程差 Γ = ${ret.retardationNm.toFixed(0)} nm`;
+      el.telemetryLeft.textContent = `${mat.nameZh} · Γ = ${ret.retardationNm.toFixed(0)} nm`;
       el.telemetryRight.textContent = `${ret.orderLabel}`;
     } else {
       const mat = getMaterial(state.conoMaterialId);
@@ -2119,7 +2385,7 @@ function renderFrame(nowMs) {
         theme: state.theme,
       });
       el.telemetryLeft.textContent = `${mat.nameZh} · ${ax.signLabelZh}`;
-      el.telemetryRight.textContent = ax.twoVDeg > 0 ? `光轴角 2V = ${ax.twoVDeg.toFixed(1)}°` : (mat.opticalActivity ? '旋光彩色牛眼干涉图' : '正交黑十字干涉图');
+      el.telemetryRight.textContent = ax.twoVDeg > 0 ? `2V = ${ax.twoVDeg.toFixed(1)}°` : (mat.opticalActivity ? '旋光牛眼干涉图' : '正交黑十字干涉图');
     }
   }
 
@@ -2128,8 +2394,9 @@ function renderFrame(nowMs) {
 }
 
 // ============================================================================
-// BOOTSTRAP CARTRIDGE
+// BOOTSTRAP V2 CARTRIDGE
 // ============================================================================
+injectStaticPixelIcons();
 updateProgressionBar();
 setTheme('riso');
 loadDetectiveCase(DETECTIVE_CASES[0]);
