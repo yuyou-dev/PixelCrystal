@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 56" width="420" height="56" shape-rendering="crispEdges">
+  <!-- Pixel Drop Shadow -->
+  <rect x="6" y="6" width="410" height="46" fill="#111118"/>
+  <!-- Volt Lime Arcade Cartridge Button -->
+  <rect x="2" y="2" width="410" height="46" fill="#C6FF00" stroke="#111118" stroke-width="3"/>
+  <rect x="8" y="8" width="42" height="34" fill="#111118"/>
+  <polygon points="22,16 38,25 22,34" fill="#FF4D94"/>
+  <text x="62" y="24" font-family="'Courier New', monospace" font-weight="900" font-size="13" fill="#1F38FF" letter-spacing="1.5">INSERT COIN · WEB CARTRIDGE</text>
+  <text x="62" y="41" font-family="'Noto Sans CJK SC', 'PingFang SC', sans-serif" font-weight="900" font-size="16" fill="#111118" letter-spacing="1">立即在线试玩《像素晶体》 GitHub Pages ▸</text>
+</svg>

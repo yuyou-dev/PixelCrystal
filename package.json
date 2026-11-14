@@ -1,0 +1,22 @@
+{
+  "name": "pixel-crystal",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SUVA · 苏哇科技 · 像素晶体 (PixelCrystal) — Crystal Optics Pixel Arcade & Gem Detective Game",
+  "type": "module",
+  "license": "SEE LICENSE IN LICENSE",
+  "author": "SUVA · 苏哇科技 (SUVA Tech)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yuyou-dev/PixelCrystal.git"
+  },
+  "homepage": "https://yuyou-dev.github.io/PixelCrystal/",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "test": "node docs/test.mjs",
+    "build": "node docs/build.mjs",
+    "serve": "node docs/build.mjs --serve"
+  }
+}

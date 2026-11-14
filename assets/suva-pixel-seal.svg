@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 92" width="680" height="92" shape-rendering="crispEdges">
+  <!-- Hard Pixel Drop Shadow -->
+  <rect x="8" y="8" width="668" height="80" fill="#111118"/>
+  <!-- Main Riso Card -->
+  <rect x="4" y="4" width="668" height="80" fill="#FAF7F0" stroke="#111118" stroke-width="3"/>
+  <rect x="14" y="14" width="64" height="60" fill="#0B0B14" stroke="#1F38FF" stroke-width="2"/>
+  <!-- Pixel Cat-Crystal Emblem -->
+  <rect x="24" y="22" width="8" height="8" fill="#C6FF00"/>
+  <rect x="60" y="22" width="8" height="8" fill="#C6FF00"/>
+  <rect x="24" y="30" width="44" height="28" fill="#1F38FF"/>
+  <rect x="30" y="36" width="8" height="8" fill="#FAF7F0"/>
+  <rect x="54" y="36" width="8" height="8" fill="#FAF7F0"/>
+  <rect x="42" y="46" width="8" height="6" fill="#FF4D94"/>
+  <rect x="20" y="60" width="52" height="10" fill="#C6FF00"/>
+  <text x="26" y="68" font-family="'Courier New', monospace" font-weight="900" font-size="9" fill="#111118" letter-spacing="1.5">SUVA·LAB</text>
+
+  <!-- Attribution Copy -->
+  <rect x="92" y="16" width="230" height="22" fill="#111118"/>
+  <text x="100" y="31" font-family="'Courier New', monospace" font-weight="900" font-size="13" fill="#C6FF00" letter-spacing="1">OFFICIAL ORIGIN · SUVA TECH</text>
+  <text x="92" y="56" font-family="'Noto Sans CJK SC', 'PingFang SC', sans-serif" font-weight="900" font-size="17" fill="#111118">SUVA · 苏哇科技 原创研发 · 光影实验室维护管理</text>
+  <text x="92" y="74" font-family="'Noto Sans CJK SC', 'PingFang SC', sans-serif" font-weight="700" font-size="12" fill="#D92672">Source-Available 受限公开协议：仅允许浏览与个人非商业体验 · 严禁二次分发与商业应用</text>
+</svg>

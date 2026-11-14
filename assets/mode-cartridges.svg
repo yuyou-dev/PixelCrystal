@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 148" width="960" height="148" shape-rendering="crispEdges">
+  <rect width="960" height="148" fill="#F2EDE2"/>
+  <!-- Card 1: Gem Detective -->
+  <g transform="translate(12, 12)">
+    <rect x="5" y="5" width="220" height="120" fill="#111118"/>
+    <rect x="0" y="0" width="220" height="120" fill="#FAF7F0" stroke="#111118" stroke-width="3"/>
+    <rect x="0" y="0" width="220" height="26" fill="#FF4D94" stroke="#111118" stroke-width="3"/>
+    <text x="10" y="18" font-family="'Courier New', monospace" font-weight="900" font-size="12" fill="#111118">STAGE 01 // DETECTIVE</text>
+    <text x="12" y="52" font-family="'Noto Sans CJK SC', sans-serif" font-weight="900" font-size="17" fill="#111118">宝石侦探社闯关</text>
+    <text x="12" y="75" font-family="'Noto Sans CJK SC', sans-serif" font-weight="700" font-size="12" fill="#232533">8桩委托案 + 无限随机宝石</text>
+    <text x="12" y="94" font-family="'Noto Sans CJK SC', sans-serif" font-weight="700" font-size="12" fill="#1F38FF">折射1.79 · 二色镜 · 偏光锥光</text>
+    <rect x="12" y="102" width="96" height="12" fill="#C6FF00"/>
+    <text x="16" y="111" font-family="'Courier New', monospace" font-weight="900" font-size="9" fill="#111118">STAMP VERDICT</text>
+  </g>
+  <!-- Card 2: 24 Mineral Codex -->
+  <g transform="translate(250, 12)">
+    <rect x="5" y="5" width="220" height="120" fill="#111118"/>
+    <rect x="0" y="0" width="220" height="120" fill="#FAF7F0" stroke="#111118" stroke-width="3"/>
+    <rect x="0" y="0" width="220" height="26" fill="#1F38FF" stroke="#111118" stroke-width="3"/>
+    <text x="10" y="18" font-family="'Courier New', monospace" font-weight="900" font-size="12" fill="#FAF7F0">STAGE 02 // 24 CODEX</text>
+    <text x="12" y="52" font-family="'Noto Sans CJK SC', sans-serif" font-weight="900" font-size="17" fill="#111118">24矿物单晶与双晶</text>
+    <text x="12" y="75" font-family="'Noto Sans CJK SC', sans-serif" font-weight="700" font-size="12" fill="#232533">7大晶系全收录 · Bayer网点</text>
+    <text x="12" y="94" font-family="'Noto Sans CJK SC', sans-serif" font-weight="700" font-size="12" fill="#D92672">尖晶石141°04'凹角 · 穿插双晶</text>
+    <rect x="12" y="102" width="110" height="12" fill="#FF4D94"/>
+    <text x="16" y="111" font-family="'Courier New', monospace" font-weight="900" font-size="9" fill="#111118">SINGLE &lt;-&gt; TWIN</text>
+  </g>
+  <!-- Card 3: Simple & Combination Forge -->
+  <g transform="translate(488, 12)">
+    <rect x="5" y="5" width="220" height="120" fill="#111118"/>
+    <rect x="0" y="0" width="220" height="120" fill="#FAF7F0" stroke="#111118" stroke-width="3"/>
+    <rect x="0" y="0" width="220" height="26" fill="#C6FF00" stroke="#111118" stroke-width="3"/>
+    <text x="10" y="18" font-family="'Courier New', monospace" font-weight="900" font-size="12" fill="#111118">STAGE 03 // 26-FORGE</text>
+    <text x="12" y="52" font-family="'Noto Sans CJK SC', sans-serif" font-weight="900" font-size="17" fill="#111118">一色一单形锻造台</text>
+    <text x="12" y="75" font-family="'Noto Sans CJK SC', sans-serif" font-weight="700" font-size="12" fill="#232533">12枚邮票单形 + 半空间切面</text>
+    <text x="12" y="94" font-family="'Noto Sans CJK SC', sans-serif" font-weight="700" font-size="12" fill="#4C6B00">{100}+{111}+{110} = 26面聚形</text>
+    <rect x="12" y="102" width="108" height="12" fill="#1F38FF"/>
+    <text x="16" y="111" font-family="'Courier New', monospace" font-weight="900" font-size="9" fill="#FAF7F0">6 BLUEPRINTS</text>
+  </g>
+  <!-- Card 4: Darkroom Optical Bench -->
+  <g transform="translate(726, 12)">
+    <rect x="5" y="5" width="220" height="120" fill="#111118"/>
+    <rect x="0" y="0" width="220" height="120" fill="#131526" stroke="#111118" stroke-width="3"/>
+    <rect x="0" y="0" width="220" height="26" fill="#00E5FF" stroke="#111118" stroke-width="3"/>
+    <text x="10" y="18" font-family="'Courier New', monospace" font-weight="900" font-size="12" fill="#111118">STAGE 04 // DARKROOM</text>
+    <text x="12" y="52" font-family="'Noto Sans CJK SC', sans-serif" font-weight="900" font-size="17" fill="#FAF7F0">暗室光学实验台</text>
+    <text x="12" y="75" font-family="'Noto Sans CJK SC', sans-serif" font-weight="700" font-size="12" fill="#8CF4FF">柯西色散彩虹 · 冰洲石双折射</text>
+    <text x="12" y="94" font-family="'Noto Sans CJK SC', sans-serif" font-weight="700" font-size="12" fill="#C6FF00">CIE干涉色尺 · 旋光牛眼锥光</text>
+    <rect x="12" y="102" width="114" height="12" fill="#C6FF00"/>
+    <text x="16" y="111" font-family="'Courier New', monospace" font-weight="900" font-size="9" fill="#111118">JONES + SNELL</text>
+  </g>
+</svg>

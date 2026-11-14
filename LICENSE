@@ -1,0 +1,112 @@
+PixelCrystal (像素晶体) Source-Available Personal Non-Commercial License 1.0
+Copyright (c) 2026 SUVA / 苏哇科技 (SUVA Tech) & Yuyou. All rights reserved in Covered Material.
+
+Official Origin / 官方出品：SUVA · 苏哇科技 (SUVA Tech)
+Official Repository / 官方仓库：https://github.com/yuyou-dev/PixelCrystal
+Official Live Web Game / 官方在线版：https://yuyou-dev.github.io/PixelCrystal/
+
+================================================================================
+中文摘要说明（法律效力以下方英文正式条款为准 / Summary Only）
+================================================================================
+
+本项目《像素晶体（PixelCrystal）》由 SUVA · 苏哇科技 原创研发并维护，采用“源码公开可见、低开放度受限使用（Source-Available, Restricted Use）”许可模式，并非 OSI 定义的自由开源软件许可：
+
+1. 允许的范围（仅限浏览与个人非商业使用）：
+   - 您可以在 GitHub 上在线浏览源码、通过官方网页免费体验游戏，或在您本人控制的设备上下载、运行、学习与私下研究本项目，仅限个人非商业娱乐与科普学习目的。
+2. 严禁二次分发与镜像托管：
+   - 未经版权方事先书面许可，严禁以任何形式复制、重新打包、镜像部署、公开托管、转售、出租、出借或向任何第三方分发本项目的源代码、离线单文件包、像素美术资产、音效代码或修改衍生版本（GitHub 平台服务条款所赋予的站内浏览与站内 Fork 基础平台行为除外，但该例外不授予任何站外分发、公开部署或商业使用权利）。
+3. 严禁任何商业应用：
+   - 未经版权方事先书面许可，严禁将本项目（或其任何部分、截图界面、算法模块、关卡设计）用于任何直接或间接商业目的，包括但不限于：商业产品集成、企业内部培训或展示、收费课程/付费教学/研学营、广告变现网站/小程序/App 封装、商业展览投屏、SaaS 或 API 对外服务。
+4. 品牌与商标保留：
+   - “SUVA”、“苏哇科技”、“SUVA Tech”、“像素晶体”、“PixelCrystal”及相关像素徽章标识之商标与品牌权益均归权利人所有，本许可不授予任何商标使用权。
+
+================================================================================
+OPERATIVE LICENSE TERMS
+================================================================================
+
+1. Scope and Covered Material
+
+This license governs all original code, pixel-art visual assets, SVG graphics,
+procedural audio synthesizers, level/quest designs, and documentation in the
+PixelCrystal ("像素晶体") repository distributed by SUVA / 苏哇科技 (SUVA Tech)
+and Yuyou ("Covered Material").
+
+Published crystallographic/mineralogical physical constants and separately
+licensed third-party reference tables (such as the CIE 1931 2-degree colour-
+matching dataset subset under CC BY-SA 4.0) remain governed by their respective
+public domain status or original licenses. See docs/LICENSING.md and
+docs/SCIENCE.md for detailed provenance.
+
+2. Limited Permission (Browse and Personal Non-Commercial Use Only)
+
+Subject to strict compliance with all terms of this license, the copyright
+holders grant you a revocable, non-exclusive, worldwide, royalty-free, non-
+transferable, non-sublicensable permission solely to:
+  (a) view and browse the source code on the official GitHub repository;
+  (b) play and interact with the official hosted web application; and
+  (c) download and run Covered Material on personal devices directly controlled
+      by you solely for your own personal, private, non-commercial learning and
+      entertainment.
+
+You must retain this license file and all SUVA / 苏哇科技 attribution notices
+intact in any private copy. No other rights or licenses are granted by
+implication, estoppel, or otherwise.
+
+3. Strict Prohibition on Commercial Use
+
+You may NOT use Covered Material, in whole or in part, for any commercial
+advantage, business operation, or monetary compensation, whether direct or
+indirect. Prohibited commercial uses include, without limitation:
+  - commercial software, games, mini-programs, mobile apps, or web portals;
+  - paid courses, commercial tutoring, paid workshops, study camps, or paid
+    educational packages using or bundling the software;
+  - advertising-supported websites, video monetization templates, or sponsored
+    exhibitions;
+  - internal corporate operations, retail store displays, or commercial gem/
+    jewelry marketing tools; and
+  - hosted, mirrored, SaaS, cloud, or API services offered to third parties.
+
+A separate prior written commercial license from SUVA / 苏哇科技 is required
+for any such use.
+
+4. Strict Prohibition on Redistribution and Third-Party Hosting
+
+You may NOT publish, redistribute, mirror,upload, sublicense, sell, rent, lend,
+bundle, or otherwise make Covered Material (in original or modified form, as
+source code, single-file HTML bundles, binaries, packages, containers, or
+derivative works) available to any third party, nor host a public or third-
+party-accessible deployment of Covered Material.
+
+Platform Exception: Because Covered Material is published in a public GitHub
+repository, viewing and in-platform forking mechanics expressly required by
+GitHub's Terms of Service remain permitted strictly within GitHub's service.
+This platform exception does NOT authorize off-platform redistribution, public
+re-deployment (including third-party Pages/mirrors), removal of attribution, or
+any commercial or derivative distribution.
+
+5. User Snapshots and Trademarks
+
+Personal, non-commercial sharing of souvenir stamp postcards exported by you
+during gameplay is permitted provided SUVA / 苏哇科技 attribution on the card is
+kept intact; please share the official project link rather than redistributing
+program files. This license grants NO trademark, service mark, logo, or brand
+endorsement rights in "SUVA", "苏哇科技", "SUVA Tech", "像素晶体", or
+"PixelCrystal".
+
+6. Termination
+
+Your permissions under this license terminate automatically and immediately
+upon any breach of Sections 2, 3, 4, or 5. Upon termination, you must cease all
+prohibited use and destroy all unauthorized copies or deployments.
+
+7. Disclaimer of Warranty and Limitation of Liability
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, COVERED MATERIAL IS PROVIDED
+"AS IS" FOR EDUCATIONAL AND ENTERTAINMENT PURPOSES ONLY, WITHOUT WARRANTIES OF
+ANY KIND, EXPRESS OR IMPLIED, INCLUDING MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE, GEMOLOGICAL CERTIFICATION ACCURACY, OR NONINFRINGEMENT. IN
+NO EVENT SHALL THE COPYRIGHT HOLDERS OR SUVA / 苏哇科技 BE LIABLE FOR ANY CLAIM,
+DAMAGES, OR OTHER LIABILITY ARISING FROM OR IN CONNECTION WITH COVERED MATERIAL.
+
+This is a source-available, restricted-use license, NOT an OSI-approved open-
+source license.
