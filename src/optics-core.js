@@ -147,6 +147,8 @@ function defineMaterial(entry) {
     className: entry.className,
     indices: Object.freeze(entry.indices.slice()),
     sg: entry.sg,
+    opaqueMetallic: Boolean(entry.opaqueMetallic),
+    reflectancePct: entry.reflectancePct || null,
     dispersionType: entry.dispersionType || 'reference-589.3nm',
     dispersionKey: entry.dispersionKey || null,
     opticalActivity: Boolean(entry.opticalActivity),
@@ -159,8 +161,8 @@ function defineMaterial(entry) {
 export const OPTICAL_MATERIALS = Object.freeze({
   quartz: defineMaterial({
     id: 'quartz',
-    nameZh: '水晶 · 石英',
-    en: 'Quartz',
+    nameZh: '水晶 · α-石英',
+    en: 'Quartz (α-Quartz)',
     className: 'uniaxial',
     indices: [1.544, 1.544, 1.553],
     sg: 2.65,
@@ -169,7 +171,7 @@ export const OPTICAL_MATERIALS = Object.freeze({
     opticalActivity: true,
     pleochroism: 'none',
     pleoColors: ['#ECEFFA', '#ECEFFA'],
-    noteZh: '一轴正晶 (+)；c 轴具显著旋光色散，正交锥光中心呈彩色牛眼干涉图。',
+    noteZh: '一轴正晶 (+)；32 点群具显著手性旋光色散 (21.7°/mm @589nm)，锥光中心呈彩色牛眼干涉图。',
   }),
   calcite: defineMaterial({
     id: 'calcite',
@@ -183,7 +185,7 @@ export const OPTICAL_MATERIALS = Object.freeze({
     opticalActivity: false,
     pleochroism: 'none',
     pleoColors: ['#F5F2E8', '#F5F2E8'],
-    noteZh: '一轴负晶 (-)，双折射率高达 0.172，坡印廷能流走离产生肉眼可见双影。',
+    noteZh: '一轴负晶 (-)，双折射率高达 0.172，坡印廷能流走离产生肉眼显著平行双影。',
   }),
   ruby: defineMaterial({
     id: 'ruby',
@@ -197,7 +199,7 @@ export const OPTICAL_MATERIALS = Object.freeze({
     opticalActivity: false,
     pleochroism: 'strong',
     pleoColors: ['#FF1E6E', '#FF7A45'],
-    noteZh: '一轴负晶 (-)，Cr3+ 致色带来紫红/橙红强二色性，可与均质红尖晶石一锤定音。',
+    noteZh: '一轴负晶 (-)，Cr³⁺ 致色带来紫红(o)/橙红(e)强二色性，可与均质红尖晶石一锤定音。',
   }),
   sapphire: defineMaterial({
     id: 'sapphire',
@@ -211,25 +213,25 @@ export const OPTICAL_MATERIALS = Object.freeze({
     opticalActivity: false,
     pleochroism: 'strong',
     pleoColors: ['#1F48FF', '#1FD1C8'],
-    noteZh: '一轴负晶 (-)，与红宝石同属刚玉，二色镜下常见靛蓝/绿蓝双色。',
+    noteZh: '一轴负晶 (-)，Fe²⁺-Ti⁴⁺ 电荷转移致色，二色镜下呈矢车菊蓝(o)/蓝绿(e)强二色性。',
   }),
   beryl: defineMaterial({
     id: 'beryl',
-    nameZh: '绿柱石',
-    en: 'Beryl',
+    nameZh: '海蓝宝石 · 绿柱石',
+    en: 'Aquamarine (Beryl)',
     className: 'uniaxial',
-    indices: [1.583, 1.583, 1.577],
+    indices: [1.580, 1.580, 1.574],
     sg: 2.70,
     dispersionType: 'reference-589.3nm',
     opticalActivity: false,
-    pleochroism: 'weak',
-    pleoColors: ['#7AE8CA', '#B8F5E2'],
-    noteZh: '六方晶系一轴负晶 (-)，低双折射率 (0.006)，比重约 2.70。',
+    pleochroism: 'moderate',
+    pleoColors: ['#3AD4F7', '#CFF7FF'],
+    noteZh: '六方晶系一轴负晶 (-)，RI 1.574–1.580，低双折射率 (0.006)，比重 2.70。',
   }),
   emerald: defineMaterial({
     id: 'emerald',
     nameZh: '祖母绿 · 绿柱石',
-    en: 'Emerald',
+    en: 'Emerald (Beryl)',
     className: 'uniaxial',
     indices: [1.583, 1.583, 1.576],
     sg: 2.72,
@@ -237,7 +239,7 @@ export const OPTICAL_MATERIALS = Object.freeze({
     opticalActivity: false,
     pleochroism: 'strong',
     pleoColors: ['#08C978', '#34D8BD'],
-    noteZh: '绿柱石铬/钒宝石品种，一轴负晶 (-)，折射率与比重显著低于绿碧玺和橄榄石。',
+    noteZh: '绿柱石 Cr/V 宝石品种，一轴负晶 (-)，Δn=0.007，折射率与比重显著低于绿碧玺与橄榄石。',
   }),
   apatite: defineMaterial({
     id: 'apatite',
@@ -250,20 +252,20 @@ export const OPTICAL_MATERIALS = Object.freeze({
     opticalActivity: false,
     pleochroism: 'moderate',
     pleoColors: ['#18C8E8', '#9CE8C8'],
-    noteZh: '六方晶系一轴负晶 (-)，极低双折射率 (0.003)，干涉圈较为宽疏。',
+    noteZh: '六方晶系 6/m 一轴负晶 (-)，极低双折射率 (0.003)，锥光干涉色圈宽疏。',
   }),
   zircon: defineMaterial({
     id: 'zircon',
     nameZh: '高型锆石',
     en: 'High Zircon',
     className: 'uniaxial',
-    indices: [1.925, 1.925, 1.980],
-    sg: 4.65,
+    indices: [1.925, 1.925, 1.984],
+    sg: 4.68,
     dispersionType: 'cauchy-teaching',
     opticalActivity: false,
     pleochroism: 'weak',
     pleoColors: ['#58C4FF', '#A6E1FF'],
-    noteZh: '四方晶系一轴正晶 (+)，折射率超折射仪 1.79 量程 (OTL)，但强双折射 (0.055) 与钻石截然不同。',
+    noteZh: '四方晶系一轴正晶 (+)，RI 1.925–1.984 超折射仪 1.79 量程 (OTL)，强双折射 (0.059) 致刻面棱重影。',
   }),
   rutile: defineMaterial({
     id: 'rutile',
@@ -276,7 +278,7 @@ export const OPTICAL_MATERIALS = Object.freeze({
     opticalActivity: false,
     pleochroism: 'moderate',
     pleoColors: ['#D93B2B', '#F59B38'],
-    noteZh: '四方晶系一轴正晶 (+)，极端高折射率与超高双折射 (0.287)。',
+    noteZh: '四方晶系一轴正晶 (+)，极端高折射率 (2.616–2.903) 与矿物界顶尖双折射 (0.287)。',
   }),
   cassiterite: defineMaterial({
     id: 'cassiterite',
@@ -289,33 +291,33 @@ export const OPTICAL_MATERIALS = Object.freeze({
     opticalActivity: false,
     pleochroism: 'weak',
     pleoColors: ['#C48B4B', '#E8C48E'],
-    noteZh: '四方晶系一轴正晶 (+)，比重高达 6.99，静水称重极易辨识。',
+    noteZh: '四方晶系一轴正晶 (+)，OTL 高折射率 (2.006–2.097)，比重高达 6.99。',
   }),
   diamond: defineMaterial({
     id: 'diamond',
-    nameZh: '钻石 · 金刚石',
+    nameZh: '金刚石 · 钻石',
     en: 'Diamond',
     className: 'isotropic',
     indices: [2.4175, 2.4175, 2.4175],
-    sg: 3.515,
+    sg: 3.52,
     dispersionType: 'cauchy-teaching',
     opticalActivity: false,
     pleochroism: 'none',
     pleoColors: ['#E6F5FF', '#E6F5FF'],
-    noteZh: '等轴晶系均质体，临界角仅 24.42°，折射仪超量程 (OTL)，理想晶体正交偏光全消光。',
+    noteZh: '等轴晶系均质体，n=2.418 临界角仅 24.42°，折射仪超量程 (OTL)，理想单晶正交偏光全消光。',
   }),
   spinel: defineMaterial({
     id: 'spinel',
     nameZh: '尖晶石',
     en: 'Spinel',
     className: 'isotropic',
-    indices: [1.719, 1.719, 1.719],
+    indices: [1.718, 1.718, 1.718],
     sg: 3.60,
     dispersionType: 'reference-589.3nm',
     opticalActivity: false,
     pleochroism: 'none',
     pleoColors: ['#FF4D88', '#FF4D88'],
-    noteZh: '等轴晶系均质体，n=1.719 单阴影、无多色性、正交偏光全黑，可精准区分红宝石。',
+    noteZh: '等轴晶系均质体，n=1.718 单阴影、无多色性、正交偏光全暗，可精准区分红宝石。',
   }),
   fluorite: defineMaterial({
     id: 'fluorite',
@@ -328,20 +330,20 @@ export const OPTICAL_MATERIALS = Object.freeze({
     opticalActivity: false,
     pleochroism: 'none',
     pleoColors: ['#7AE8B8', '#7AE8B8'],
-    noteZh: '等轴晶系均质体，低折射率 (1.434) 与极低色散。',
+    noteZh: '等轴晶系均质体，低折射率 (1.434) 与极低色散 (0.007)。',
   }),
   garnet: defineMaterial({
     id: 'garnet',
-    nameZh: '铁铝榴石 · 石榴石',
-    en: 'Almandine Garnet',
+    nameZh: '镁铁铝榴石 · 石榴石',
+    en: 'Pyrope-Almandine Garnet',
     className: 'isotropic',
-    indices: [1.785, 1.785, 1.785],
-    sg: 4.05,
+    indices: [1.746, 1.746, 1.746],
+    sg: 3.80,
     dispersionType: 'reference-589.3nm',
     opticalActivity: false,
     pleochroism: 'none',
     pleoColors: ['#C92A52', '#C92A52'],
-    noteZh: '等轴晶系均质体，折射率近接触液上限 (1.785)，无多色性，比重高于尖晶石。',
+    noteZh: '等轴晶系均质体，宝石级镁铁铝榴石代表值 n=1.746、SG=3.80（纯镁铝 1.714 至纯铁铝 1.830 OTL）。',
   }),
   pyrite: defineMaterial({
     id: 'pyrite',
@@ -350,15 +352,17 @@ export const OPTICAL_MATERIALS = Object.freeze({
     className: 'isotropic',
     indices: [1.850, 1.850, 1.850],
     sg: 5.01,
+    opaqueMetallic: true,
+    reflectancePct: 54.5,
     dispersionType: 'reference-589.3nm',
     opticalActivity: false,
     pleochroism: 'none',
     pleoColors: ['#E6C24D', '#E6C24D'],
-    noteZh: '不透明等轴金属硫化物（比重 5.01，此处仅作等轴对称与比重教学参考，不作透射偏光样品）。',
+    noteZh: '不透明等轴金属硫化物 (2/m3̄, SG=5.01, 空气反射率 R≈54.5% 均质浅黄白)，透射光全阻挡。',
   }),
   tourmaline: defineMaterial({
     id: 'tourmaline',
-    nameZh: '碧玺 · 锂电气石',
+    nameZh: '电气石 · 锂碧玺',
     en: 'Tourmaline (Elbaite)',
     className: 'uniaxial',
     indices: [1.644, 1.644, 1.624],
@@ -367,59 +371,59 @@ export const OPTICAL_MATERIALS = Object.freeze({
     opticalActivity: false,
     pleochroism: 'strong',
     pleoColors: ['#0B6B4F', '#6EE8B5'],
-    noteZh: '三方晶系一轴负晶 (-)，双折射率 0.020，常光 ω 吸收显著强于非常光 ε。',
+    noteZh: '三方极性点群 3m 一轴负晶 (-)，Δn=0.020，常光 ω 吸收显著强于非常光 ε (ω ≫ ε)。',
   }),
   topaz: defineMaterial({
     id: 'topaz',
     nameZh: '托帕石 · 黄玉',
     en: 'Topaz',
     className: 'biaxial',
-    indices: [1.606, 1.609, 1.616],
+    indices: [1.610, 1.613, 1.620],
     sg: 3.53,
     dispersionType: 'reference-589.3nm',
     opticalActivity: false,
     pleochroism: 'moderate',
     pleoColors: ['#FFA834', '#FFE79E'],
-    noteZh: '斜方晶系二轴正晶 (+)，2V≈66.6°，比重 3.53 明显高于外观相似的黄水晶 (2.65)。',
+    noteZh: '斜方晶系二轴正晶 (+)，RI 1.610–1.620 (Δn=0.010, 2V≈66°)，比重 3.53 显著高于黄水晶 (2.65)。',
   }),
   peridot: defineMaterial({
     id: 'peridot',
-    nameZh: '橄榄石 · 镁橄榄石',
-    en: 'Peridot (Forsterite)',
+    nameZh: '橄榄石',
+    en: 'Peridot (Forsterite Fo90)',
     className: 'biaxial',
-    indices: [1.635, 1.651, 1.670],
-    sg: 3.28,
+    indices: [1.654, 1.672, 1.690],
+    sg: 3.34,
     dispersionType: 'reference-589.3nm',
     opticalActivity: false,
     pleochroism: 'weak',
     pleoColors: ['#96E02E', '#C6F569'],
-    noteZh: '斜方晶系二轴正晶 (+)，强双折射 (0.035) 可见刻面棱重影。',
+    noteZh: '斜方晶系宝石级橄榄石 (Fo90)，RI 1.654–1.690，强双折射 Δn=0.036 可见刻面棱重影，2V≈88°。',
   }),
   chrysoberyl: defineMaterial({
     id: 'chrysoberyl',
-    nameZh: '金绿宝石',
-    en: 'Chrysoberyl',
+    nameZh: '金绿宝石 · 变石',
+    en: 'Chrysoberyl / Alexandrite',
     className: 'biaxial',
-    indices: [1.746, 1.748, 1.756],
-    sg: 3.75,
+    indices: [1.746, 1.748, 1.755],
+    sg: 3.73,
     dispersionType: 'reference-589.3nm',
     opticalActivity: false,
     pleochroism: 'strong',
     pleoColors: ['#18C98E', '#E04882'],
-    noteZh: '斜方晶系二轴正晶 (+)，变石品种具显著多色性与光源变色效应（区别于六方绿柱石）。',
+    noteZh: '斜方晶系二轴正晶 (+, 2V≈48°)，RI 1.746–1.755，变石具强三色性与变色效应，区别于六方绿柱石。',
   }),
   tanzanite: defineMaterial({
     id: 'tanzanite',
     nameZh: '坦桑石 · 黝帘石',
     en: 'Tanzanite (Zoisite)',
     className: 'biaxial',
-    indices: [1.692, 1.695, 1.701],
+    indices: [1.6925, 1.6943, 1.7015],
     sg: 3.35,
     dispersionType: 'reference-589.3nm',
     opticalActivity: false,
     pleochroism: 'strong',
     pleoColors: ['#2845FF', '#B34DFF'],
-    noteZh: '斜方晶系二轴正晶 (+)，具著名蓝/紫强多色性，锥光双曲黑刷可与一轴蓝宝石区分。',
+    noteZh: '斜方晶系 Pnma 二轴正晶 (+, 2V=53°, Hurlbut 1969)，蓝/紫红/绿黄强三色性可与一轴蓝宝石区分。',
   }),
   orthoclase: defineMaterial({
     id: 'orthoclase',
@@ -432,7 +436,7 @@ export const OPTICAL_MATERIALS = Object.freeze({
     opticalActivity: false,
     pleochroism: 'none',
     pleoColors: ['#F5E8D3', '#F5E8D3'],
-    noteZh: '单斜晶系二轴负晶 (-)，低折射率 (1.518–1.524)，比重 2.56。',
+    noteZh: '单斜晶系 C2/m 二轴负晶 (-, 2V≈65°)，低折射率 1.518–1.524 (Δn=0.006)，SG=2.56。',
   }),
   gypsum: defineMaterial({
     id: 'gypsum',
@@ -440,12 +444,12 @@ export const OPTICAL_MATERIALS = Object.freeze({
     en: 'Gypsum (Selenite)',
     className: 'biaxial',
     indices: [1.521, 1.523, 1.530],
-    sg: 2.317,
+    sg: 2.32,
     dispersionType: 'reference-589.3nm',
     opticalActivity: false,
     pleochroism: 'none',
     pleoColors: ['#FAF6F0', '#FAF6F0'],
-    noteZh: '单斜晶系二轴正晶 (+)，正是偏光显微镜 530 nm 一级红试板的经典材料。',
+    noteZh: '单斜晶系 I2/a 二轴正晶 (+, 2V≈58°)，RI 1.521–1.530，正是 +530 nm 一级红补偿试板的经典矿物。',
   }),
   kyanite: defineMaterial({
     id: 'kyanite',
@@ -453,12 +457,12 @@ export const OPTICAL_MATERIALS = Object.freeze({
     en: 'Kyanite',
     className: 'biaxial',
     indices: [1.712, 1.721, 1.728],
-    sg: 3.61,
+    sg: 3.65,
     dispersionType: 'reference-589.3nm',
     opticalActivity: false,
     pleochroism: 'strong',
     pleoColors: ['#1A56E8', '#CFE2FF'],
-    noteZh: '三斜晶系二轴负晶 (-)，2V≈82°，深蓝与近无色强多色性，硬度具显著异向性。',
+    noteZh: '三斜晶系 P1̄ 二轴负晶 (-, 2V≈82°)，RI 1.712–1.728，钴蓝/无色强三色性，摩氏硬度具著名异向性 (4.5 vs 7)。',
   }),
   albite: defineMaterial({
     id: 'albite',
@@ -471,7 +475,7 @@ export const OPTICAL_MATERIALS = Object.freeze({
     opticalActivity: false,
     pleochroism: 'none',
     pleoColors: ['#E6ECFA', '#E6ECFA'],
-    noteZh: '三斜晶系二轴正晶 (+)，常见聚片双晶条纹。',
+    noteZh: '三斜晶系 C1̄ 二轴正晶 (+, 2V≈77°)，RI 1.527–1.538，常见 {010} 聚片双晶阶梯条纹。',
   }),
   flint_prism: defineMaterial({
     id: 'flint_prism',
@@ -570,6 +574,18 @@ function eigenModesFromIndices(indices, direction) {
 
 export function opticAxisInfo(id, wavelengthNm = 589.3) {
   const mat = getMaterial(id);
+  if (mat.opaqueMetallic) {
+    return {
+      className: 'isotropic',
+      sign: 'isotropic',
+      signLabelZh: '金属不透明 (反光均质)',
+      twoVDeg: 0,
+      deltaN: 0,
+      axes: [],
+      isOpaqueMetallic: true,
+      reflectancePct: mat.reflectancePct,
+    };
+  }
   const n = refractiveIndicesAt(mat, wavelengthNm);
   const span = Math.max(n[0], n[1], n[2]) - Math.min(n[0], n[1], n[2]);
 
@@ -791,6 +807,21 @@ export function calciteDoubleRay(
   { thicknessMm = 6, tiltDeg = 45, azimuthDeg = 30, analyzerOn = false, analyzerDeg = 0 } = {}
 ) {
   const mat = getMaterial(materialId);
+  if (mat.opaqueMetallic) {
+    return {
+      nO: mat.indices[0],
+      nE: mat.indices[0],
+      deltaN: 0,
+      separationMm: 0,
+      walkoffDeg: 0,
+      oOffset: [0, 0],
+      eOffset: [0, 0],
+      oIntensity: 0,
+      eIntensity: 0,
+      isIsotropic: true,
+      isOpaqueMetallic: true,
+    };
+  }
   const indices = refractiveIndicesAt(mat, 589.3);
   const t = clamp(finite(thicknessMm, 6), 0.2, 50);
   const span = Math.max(indices[0], indices[1], indices[2]) - Math.min(indices[0], indices[1], indices[2]);
@@ -876,6 +907,18 @@ export function orthoscopicRetardation(
   { stageDeg = 45, thicknessUm = 35, gypsumPlate = false } = {}
 ) {
   const mat = getMaterial(materialId);
+  if (mat.opaqueMetallic) {
+    return {
+      deltaN: 0,
+      retardationNm: 0,
+      effectiveRetardationNm: 0,
+      transmission: 0,
+      rgb: [0, 0, 0],
+      hex: '#000000',
+      orderLabel: `不透明金属全阻光 (R≈${mat.reflectancePct ?? 54.5}%)`,
+      isOpaqueMetallic: true,
+    };
+  }
   const info = opticAxisInfo(mat, 589.3);
   const deltaN = info.deltaN;
   const um = clamp(finite(thicknessUm, 35), 1, 200);
@@ -1001,12 +1044,12 @@ export function renderConoscopeBuffer(
   const orientation = buildOrientationMatrix(mat, { stageDeg, tiltDeg, axisMode: 'acute' });
   const invOrientation = matTranspose(orientation);
 
-  // Fast path for ideal isotropic crystal
+  // Fast path for ideal isotropic or opaque metallic crystal
   if (info.className === 'isotropic') {
     let isoR = 0;
     let isoG = 0;
     let isoB = 0;
-    if (gypsumPlate) {
+    if (gypsumPlate && !mat.opaqueMetallic) {
       const gyp = orthoscopicRetardation('diamond', { gypsumPlate: true });
       isoR = gyp.rgb[0];
       isoG = gyp.rgb[1];
@@ -1034,6 +1077,7 @@ export function renderConoscopeBuffer(
       sign: 'isotropic',
       signLabelZh: info.signLabelZh,
       axesScreen: [],
+      isOpaqueMetallic: Boolean(mat.opaqueMetallic),
     };
   }
 
@@ -1218,6 +1262,20 @@ export function refractometerShadow(
   const limit = finite(liquidLimit, 1.79);
   const scaleMin = 1.30;
   const scaleMax = 1.81;
+
+  if (mat.opaqueMetallic) {
+    return {
+      overLimit: true,
+      isOpaqueMetallic: true,
+      reflectancePct: mat.reflectancePct,
+      nLow: Number(indices[0].toFixed(4)),
+      nHigh: Number(indices[0].toFixed(4)),
+      deltaN: 0,
+      isDoublyRefractive: false,
+      scaleMin,
+      scaleMax,
+    };
+  }
 
   if (mat.className === 'isotropic') {
     const n = Number(indices[0].toFixed(4));

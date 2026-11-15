@@ -518,6 +518,7 @@ function renderDetectiveStationControls() {
   } else if (st === 2) {
     const ref = refractometerShadow(matId, { rotationDeg: state.detRefRotDeg });
     const tir = snellBenchRay(matId, state.detTirAngleDeg, true);
+    const isOp = Boolean(ref.isOpaqueMetallic);
     el.detStationBody.innerHTML = `
       <div class="slider-row">
         <div class="slider-label">
@@ -529,18 +530,18 @@ function renderDetectiveStationControls() {
       <div class="slider-row">
         <div class="slider-label">
           <span>晶内激光全反射测试角 θ₁</span>
-          <span class="slider-val" id="detTirAngleTxt">${state.detTirAngleDeg}° (临界角 ${tir.criticalDeg.toFixed(1)}°)</span>
+          <span class="slider-val" id="detTirAngleTxt">${isOp ? '不透明金属矿物 (无透射全反射角)' : `${state.detTirAngleDeg}° (临界角 ${tir.criticalDeg.toFixed(1)}°)`}</span>
         </div>
         <input type="range" id="detTirSlider" min="10" max="65" value="${state.detTirAngleDeg}" />
       </div>
       <div class="readout-grid">
         <div class="readout-cell">
           <span class="readout-k">折光仪阴影界读数</span>
-          <span class="readout-v" id="detRefReadout">${ref.overLimit ? 'OTL 超量程 (>1.79!)' : `${ref.nLow.toFixed(3)} – ${ref.nHigh.toFixed(3)}`}</span>
+          <span class="readout-v" id="detRefReadout">${isOp ? `不透明金属反光 (R≈${ref.reflectancePct}%)` : ref.overLimit ? 'OTL 超量程 (>1.79!)' : `${ref.nLow.toFixed(3)} – ${ref.nHigh.toFixed(3)}`}</span>
         </div>
         <div class="readout-cell">
           <span class="readout-k">实测双折射跳动 Δn</span>
-          <span class="readout-v" id="detBirefReadout">${ref.overLimit ? '需结合偏光台判定' : `${ref.deltaN.toFixed(3)} (${ref.isDoublyRefractive ? '双折射' : '单折射'})`}</span>
+          <span class="readout-v" id="detBirefReadout">${isOp ? '需用反射矿相偏光镜' : ref.overLimit ? '需结合偏光台判定' : `${ref.deltaN.toFixed(3)} (${ref.isDoublyRefractive ? '双折射' : '单折射'})`}</span>
         </div>
       </div>
     `;
@@ -548,13 +549,19 @@ function renderDetectiveStationControls() {
       state.detRefRotDeg = Number(e.target.value);
       const r2 = refractometerShadow(matId, { rotationDeg: state.detRefRotDeg });
       document.getElementById('detRefAngleTxt').textContent = `${state.detRefRotDeg}°`;
-      document.getElementById('detRefReadout').textContent = r2.overLimit ? 'OTL 超量程 (>1.79!)' : `${r2.nLow.toFixed(3)} – ${r2.nHigh.toFixed(3)}`;
-      document.getElementById('detBirefReadout').textContent = r2.overLimit ? '需结合偏光台判定' : `${r2.deltaN.toFixed(3)} (${r2.isDoublyRefractive ? '双折射' : '单折射'})`;
+      document.getElementById('detRefReadout').textContent = r2.isOpaqueMetallic
+        ? `不透明金属反光 (R≈${r2.reflectancePct}%)`
+        : r2.overLimit ? 'OTL 超量程 (>1.79!)' : `${r2.nLow.toFixed(3)} – ${r2.nHigh.toFixed(3)}`;
+      document.getElementById('detBirefReadout').textContent = r2.isOpaqueMetallic
+        ? '需用反射矿相偏光镜'
+        : r2.overLimit ? '需结合偏光台判定' : `${r2.deltaN.toFixed(3)} (${r2.isDoublyRefractive ? '双折射' : '单折射'})`;
     });
     document.getElementById('detTirSlider')?.addEventListener('input', (e) => {
       state.detTirAngleDeg = Number(e.target.value);
       const t2 = snellBenchRay(matId, state.detTirAngleDeg, true);
-      document.getElementById('detTirAngleTxt').textContent = `${state.detTirAngleDeg}° (${t2.tir ? '全内反射 TIR!' : '透射漏光'})`;
+      document.getElementById('detTirAngleTxt').textContent = isOp
+        ? '不透明金属矿物 (无透射全反射角)'
+        : `${state.detTirAngleDeg}° (${t2.tir ? '全内反射 TIR!' : '透射漏光'})`;
       playLaserSweep(state.detTirAngleDeg / 65);
       if (t2.tir) unlockAchievementStamp('stamp_first_refraction');
     });
@@ -581,7 +588,7 @@ function renderDetectiveStationControls() {
       <div class="readout-grid">
         <div class="readout-cell">
           <span class="readout-k">正交消光与干涉现象</span>
-          <span class="readout-v" id="detOrthoReadout">${ax.className === 'isotropic' ? '360° 任意旋转全暗 (均质体)' : `四明四暗 · ${ortho.orderLabel}`}</span>
+          <span class="readout-v" id="detOrthoReadout">${ax.isOpaqueMetallic ? '透射光不透明全黑 (金属均质体)' : ax.className === 'isotropic' ? '360° 任意旋转全暗 (均质体)' : `四明四暗 · ${ortho.orderLabel}`}</span>
         </div>
         <div class="readout-cell">
           <span class="readout-k">锥光光性与 2V 角</span>
@@ -616,7 +623,9 @@ function renderDetectiveStationControls() {
       });
       const rNode = document.getElementById('detOrthoReadout');
       if (rNode) {
-        rNode.textContent = ax.className === 'isotropic' ? '360° 任意旋转全暗 (均质体)' : `I=${Math.round(o2.transmission * 100)}% · ${o2.orderLabel}`;
+        rNode.textContent = ax.isOpaqueMetallic
+          ? '透射光不透明全黑 (金属均质体)'
+          : ax.className === 'isotropic' ? '360° 任意旋转全暗 (均质体)' : `I=${Math.round(o2.transmission * 100)}% · ${o2.orderLabel}`;
       }
     });
   } else {
@@ -678,7 +687,7 @@ function renderDetectiveEvidence() {
   }
   if (visited.has(2)) {
     const ref = refractometerShadow(matId);
-    lines.push(`• [折光仪] ${ref.overLimit ? 'RI 超出 1.79 接触液上限 (OTL)!' : `RI = ${ref.nLow.toFixed(3)}–${ref.nHigh.toFixed(3)}，Δn = ${ref.deltaN.toFixed(3)}`}`);
+    lines.push(`• [折光仪] ${ref.isOpaqueMetallic ? `不透明金属矿物 (反射率 R≈${ref.reflectancePct}%)` : ref.overLimit ? 'RI 超出 1.79 接触液上限 (OTL)!' : `RI = ${ref.nLow.toFixed(3)}–${ref.nHigh.toFixed(3)}，Δn = ${ref.deltaN.toFixed(3)}`}`);
   }
   if (visited.has(3)) {
     const ax = opticAxisInfo(matId);
@@ -834,9 +843,32 @@ function renderCodexUI() {
     el.codexMineralGrid.appendChild(chip);
   }
 
+  const curMin = CODEX_MAP.get(state.codexMineralId) || MINERAL_CODEX[0];
+  const curMesh = buildMineralMesh(curMin.id, { variant: state.codexVariant });
+  const btnTwin = document.getElementById('btnCodexTwin');
+  const btnAxes = document.getElementById('btnCodexAxes');
+  if (btnTwin) {
+    const cat = curMesh.twinMeta?.category;
+    const isRare = Boolean(curMesh.twinMeta?.isRareOrGrowth);
+    btnTwin.textContent = cat === 'growth_sector'
+      ? '扇区连生 TRAPICHE'
+      : isRare
+        ? '罕见双晶对照 RARE'
+        : cat === 'cyclic'
+          ? '轮式三连晶 TRILLING'
+          : cat === 'polysynthetic'
+            ? '聚片双晶 LAMELLAE'
+            : cat === 'penetration'
+              ? '穿插双晶 TWIN'
+              : '接触双晶 TWIN';
+  }
+  if (btnAxes) {
+    btnAxes.textContent = `对称要素: ${curMesh.symmetrySummaryZh || curMesh.pointGroup}`;
+  }
+
   document.getElementById('btnCodexSingle')?.classList.toggle('is-active', state.codexVariant === 'single');
-  document.getElementById('btnCodexTwin')?.classList.toggle('is-active', state.codexVariant === 'twin');
-  document.getElementById('btnCodexAxes')?.classList.toggle('is-active', state.showAxes);
+  btnTwin?.classList.toggle('is-active', state.codexVariant === 'twin');
+  btnAxes?.classList.toggle('is-active', state.showAxes);
   document.getElementById('btnCodexConstancy')?.classList.toggle('is-active', state.codexConstancyCard);
 
   renderCodexDossier();
@@ -846,6 +878,9 @@ function renderCodexDossier() {
   const m = CODEX_MAP.get(state.codexMineralId) || MINERAL_CODEX[0];
   const mesh = buildMineralMesh(m.id, { variant: state.codexVariant, explode: state.codexExplode });
   const sys = CRYSTAL_SYSTEMS.find((s) => s.id === m.systemId);
+  const birefText = m.opaqueMetallic
+    ? '不透明金属反光'
+    : `Δn ${Number(m.birefringence).toFixed(3)}`;
 
   el.codexDossier.innerHTML = `
     <div class="monologue-quote">${m.rpgQuote}</div>
@@ -855,29 +890,29 @@ function renderCodexDossier() {
         <span class="readout-v">${m.nameZh} (${m.formula})</span>
       </div>
       <div class="readout-cell">
-        <span class="readout-k">晶系与点群对称</span>
-        <span class="readout-v">${m.systemZh} · ${m.pointGroup}</span>
+        <span class="readout-k">晶系与点群对称要素</span>
+        <span class="readout-v">${m.systemZh} · ${m.pointGroup} (${mesh.symmetrySummaryZh || ''})</span>
       </div>
       <div class="readout-cell">
-        <span class="readout-k">折射率 RI & 双折射 Δn</span>
-        <span class="readout-v">RI ${m.riText} | Δn ${Number(m.birefringence).toFixed(3)}</span>
+        <span class="readout-k">${m.opaqueMetallic ? '金属反射率 R (589nm)' : '折射率 RI & 双折射 Δn'}</span>
+        <span class="readout-v">${m.opaqueMetallic ? m.riText : `RI ${m.riText}`} | ${birefText}</span>
       </div>
       <div class="readout-cell">
         <span class="readout-k">光性 / 摩氏硬度 / 比重</span>
         <span class="readout-v">${m.opticSignZh} · H=${m.mohs} · SG=${m.sg}</span>
       </div>
       <div class="readout-cell">
-        <span class="readout-k">单形晶习 (共 ${mesh.totalFaces} 面)</span>
+        <span class="readout-k">${state.codexVariant === 'twin' ? `双晶组合 (共 ${mesh.totalFaces} 面)` : `单形晶习 (共 ${mesh.totalFaces} 面)`}</span>
         <span class="readout-v">${m.habitZh}</span>
       </div>
       <div class="readout-cell">
-        <span class="readout-k">经典双晶律与凹角</span>
+        <span class="readout-k">${mesh.twinMeta?.category === 'growth_sector' ? '扇区生长机制' : mesh.twinMeta?.isRareOrGrowth ? '罕见双晶律与实算夹角' : '经典双晶律与凹入角'}</span>
         <span class="readout-v">${m.twinLawZh}</span>
       </div>
     </div>
     <div class="control-box" style="margin-top:8px;font-size:12px;">
       <strong>🔬 鉴定师判别要诀：</strong>${m.diagnosticTip}
-      ${sys ? `<div style="margin-top:4px;color:var(--ink-muted);">轴率规则：${sys.axialRule} · ${sys.symmetryTag}</div>` : ''}
+      ${sys ? `<div style="margin-top:4px;color:var(--ink-muted);">轴率规则：${sys.axialRule} · 点群对称：${mesh.symmetrySummaryZh || sys.symmetryTag}</div>` : ''}
     </div>
   `;
 }

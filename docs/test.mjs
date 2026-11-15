@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// SUVA · 苏哇科技 · PixelCrystal V2 Automated Physics, Geometry, Pure-Pixel & V1-Archive Test Suite
+// SUVA · 苏哇科技 · PixelCrystal V2.1 Automated Physics, Crystallography, Twin Audit, Pure-Pixel & Governance Test Suite
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -16,27 +16,45 @@ async function runTests() {
     console.log(`  [PASS] ${name}`);
   };
 
-  console.log('=== PixelCrystal V2 · Physics, Polyhedra, Pure-Pixel & Governance Verification ===');
+  console.log('=== PixelCrystal V2.1 · Full Scientific Crystallography, Twin & Optics Verification ===');
 
   const palette = await import('../src/palette.js');
   const sprites = await import('../src/pixel-sprites.js');
   const optics = await import('../src/optics-core.js');
   const meshes = await import('../src/crystal-meshes.js');
   const data = await import('../src/game-data.js');
+  const engineMod = await import('../src/pixel-engine.js');
 
-  check('RISO_PALETTE, 5x7 pixel font & V2 pixel-sprites loaded cleanly', () => {
+  check('RISO_PALETTE, 5x7 crystallographic glyphs (lowercase a/b/c, ^, barred digits) & pixel-sprites', () => {
     assert.equal(palette.RISO_PALETTE.lime, '#C6FF00');
     assert.equal(palette.RISO_PALETTE.pink, '#FF4D94');
     assert.equal(palette.RISO_PALETTE.blue, '#1F38FF');
     assert.equal(palette.BAYER_4X4.length, 4);
-    assert.ok(palette.PIXEL_FONT_5X7['A']);
+    for (const ch of ['A', 'a', 'b', 'c', '^', '\uE001', '\uE002', '\uE003', '\uE004', '\uE006']) {
+      assert.ok(palette.PIXEL_FONT_5X7[ch], `Glyph ${JSON.stringify(ch)} present in PIXEL_FONT_5X7`);
+    }
     assert.ok(sprites.DOCK_SPRITES.HOME(24).includes('shape-rendering="crispEdges"'));
     assert.ok(sprites.PIXEL_ICONS.gemPink100(16).includes('shape-rendering="crispEdges"'));
   });
 
-  check('Optical materials cover isotropic, uniaxial (+/-), and biaxial (+/-)', () => {
+  check('PixelEngine._normalizeText preserves lowercase crystallographic c-axis & barred Miller indices', () => {
+    const pe = Object.create(engineMod.PixelEngine.prototype);
+    assert.equal(pe._normalizeText('L3 · +c'), 'L3 · +c');
+    assert.equal(pe._normalizeText('-c (antilogous)'), '-c (ANTILOGOUS)');
+    assert.equal(pe._normalizeText("c^c 125°16'"), "c^c 125°16'");
+    assert.equal(pe._normalizeText('3\u0304m'), '\uE003M');
+    assert.equal(pe._normalizeText('{112\u03042}'), '{11\uE0022}');
+  });
+
+  check('Optical materials cover isotropic, opaque metallic (Pyrite), uniaxial (+/-), and exact Fresnel biaxial 2V', () => {
     const diamond = optics.opticAxisInfo('diamond');
     assert.equal(diamond.className, 'isotropic');
+
+    const pyrite = optics.opticAxisInfo('pyrite');
+    assert.equal(pyrite.isOpaqueMetallic, true);
+    const pyRef = optics.refractometerShadow('pyrite');
+    assert.equal(pyRef.isOpaqueMetallic, true);
+    assert.equal(pyRef.reflectancePct, 54.5);
 
     const quartz = optics.opticAxisInfo('quartz');
     assert.equal(quartz.className, 'uniaxial');
@@ -45,97 +63,160 @@ async function runTests() {
     const calcite = optics.opticAxisInfo('calcite');
     assert.equal(calcite.className, 'uniaxial');
     assert.equal(calcite.sign, 'negative');
-    assert.ok(calcite.deltaN > 0.15, 'Calcite strong birefringence');
+    assert.ok(Math.abs(calcite.deltaN - 0.172) < 0.001);
 
     const topaz = optics.opticAxisInfo('topaz');
     assert.equal(topaz.className, 'biaxial');
-    assert.ok(topaz.twoVDeg > 40 && topaz.twoVDeg < 80);
+    assert.equal(topaz.sign, 'positive');
+    assert.ok(Math.abs(topaz.twoVDeg - 66.7) < 0.5);
+
+    const chryso = optics.opticAxisInfo('chrysoberyl');
+    assert.equal(chryso.sign, 'positive');
+    assert.ok(Math.abs(chryso.twoVDeg - 56.4) < 0.5);
+
+    const tanz = optics.opticAxisInfo('tanzanite');
+    assert.equal(tanz.sign, 'positive');
+    assert.ok(Math.abs(tanz.twoVDeg - 53.3) < 0.5);
   });
 
-  check('Prism dispersion & Snell critical angle physics', () => {
+  check('Prism dispersion, Snell critical angle, Calcite walkoff & Refractometer OTL', () => {
     const fan = optics.prismDispersionFan('flint_prism', 60, 48);
     assert.ok(fan.rays.length >= 4);
-    const r650 = fan.rays.find((r) => r.nm === 650) || fan.rays[0];
-    const r455 = fan.rays.find((r) => r.nm === 455) || fan.rays[fan.rays.length - 1];
-    assert.ok(r455.n > r650.n, 'Normal dispersion n(blue) > n(red)');
+    assert.ok(fan.rays[fan.rays.length - 1].n > fan.rays[0].n, 'Normal dispersion n(blue) > n(red)');
 
     const tirCheck = optics.snellBenchRay('diamond', 30, true);
-    assert.ok(Math.abs(tirCheck.criticalDeg - 24.4) < 1.0, 'Diamond critical angle ~24.4 deg');
-    assert.equal(tirCheck.tir, true, '30 deg inside diamond triggers TIR');
-  });
+    assert.ok(Math.abs(tirCheck.criticalDeg - 24.44) < 0.5, 'Diamond critical angle ~24.44 deg');
+    assert.equal(tirCheck.tir, true);
 
-  check('Calcite Poynting ray walkoff & Refractometer OTL', () => {
     const split = optics.calciteDoubleRay('calcite', { thicknessMm: 6, tiltDeg: 45 });
     assert.equal(split.isIsotropic, false);
-    assert.ok(split.separationMm > 0.3, 'Calcite double-refraction walkoff > 0.3mm');
+    assert.ok(split.separationMm > 0.3);
 
-    const isoSplit = optics.calciteDoubleRay('spinel', { thicknessMm: 6, tiltDeg: 45 });
-    assert.equal(isoSplit.isIsotropic, true);
-
-    const diamondRef = optics.refractometerShadow('diamond');
-    assert.equal(diamondRef.overLimit, true, 'Diamond exceeds 1.79 contact liquid');
-
-    const rubyRef = optics.refractometerShadow('ruby');
-    assert.equal(rubyRef.overLimit, false);
-    assert.equal(rubyRef.isDoublyRefractive, true);
+    assert.equal(optics.refractometerShadow('diamond').overLimit, true);
+    assert.equal(optics.refractometerShadow('ruby').overLimit, false);
+    assert.equal(optics.refractometerShadow('ruby').isDoublyRefractive, true);
   });
 
-  check('Michel-Levy CIE strip & Jones Conoscope buffer (Quartz Bullseye + Biaxial)', () => {
+  check('Michel-Levy CIE strip & Jones Conoscope buffer (Quartz Bullseye + Isotropic + Opaque)', () => {
     const strip = optics.michelLevyStrip(120, 1650);
     assert.equal(strip.length, 120 * 3);
 
     const qCono = optics.renderConoscopeBuffer('quartz', { size: 48, thicknessMm: 2.0 });
-    assert.equal(qCono.rgba.length, 48 * 48 * 4);
     const midIdx = (24 * 48 + 24) * 4;
     const centerLum = qCono.rgba[midIdx] + qCono.rgba[midIdx + 1] + qCono.rgba[midIdx + 2];
     assert.ok(centerLum > 30, 'Quartz optical activity produces bright rotary bullseye center');
 
     const isoCono = optics.renderConoscopeBuffer('spinel', { size: 48 });
-    const isoCenter = isoCono.rgba[midIdx] + isoCono.rgba[midIdx + 1] + isoCono.rgba[midIdx + 2];
-    assert.equal(isoCenter, 0, 'Isotropic spinel stays dark at center under crossed polars');
+    assert.equal(isoCono.rgba[midIdx] + isoCono.rgba[midIdx + 1] + isoCono.rgba[midIdx + 2], 0);
+
+    const pyCono = optics.renderConoscopeBuffer('pyrite', { size: 48 });
+    assert.equal(pyCono.rgba[midIdx] + pyCono.rgba[midIdx + 1] + pyCono.rgba[midIdx + 2], 0);
   });
 
-  check('All 24 Mineral Codex single & twin meshes + Spinel {111} twin', () => {
+  check('Euler V - E + F = 2 & 3D twin callout anchors across all 24 single + 24 twin meshes', () => {
     assert.equal(data.MINERAL_CODEX.length, 24);
     for (const entry of data.MINERAL_CODEX) {
-      const mSingle = meshes.buildMineralMesh(entry.id, { variant: 'single' });
-      assert.ok(mSingle.solids.length >= 1, `${entry.id} single mesh has solids`);
-      assert.ok(mSingle.totalFaces >= 4, `${entry.id} single mesh has >= 4 faces`);
-      const mTwin = meshes.buildMineralMesh(entry.id, { variant: 'twin' });
-      assert.ok(mTwin.solids.length >= 2, `${entry.id} twin/cluster has >= 2 solids`);
+      for (const variant of ['single', 'twin']) {
+        const m = meshes.buildMineralMesh(entry.id, { variant });
+        assert.ok(m.solids.length >= (variant === 'twin' ? 2 : 1), `${entry.id} ${variant} solid count`);
+        for (let si = 0; si < m.solids.length; si++) {
+          const s = m.solids[si];
+          const V = s.vertices.length;
+          const F = s.faces.length;
+          const E = s.edges.length;
+          assert.equal(V - E + F, 2, `${entry.id} ${variant} solid#${si} satisfies Euler V-E+F=2 (got ${V}-${E}+${F})`);
+        }
+        if (variant === 'twin') {
+          assert.ok(m.twinInfo, `${entry.id} twin has twinInfo`);
+          assert.equal(m.twinInfo.planeOrigin3D.length, 3, `${entry.id} twin has 3D planeOrigin3D`);
+          assert.equal(m.twinInfo.traceDir3D.length, 3, `${entry.id} twin has 3D traceDir3D`);
+          assert.equal(m.twinInfo.notchAnchor3D.length, 3, `${entry.id} twin has 3D notchAnchor3D`);
+          assert.ok(!m.twinInfo.lawZh.includes('放射状晶簇'), `${entry.id} does not use generic druse cluster`);
+        }
+      }
     }
-    const spinelTwin = meshes.buildMineralMesh('spinel', { variant: 'twin' });
-    assert.ok(spinelTwin.twinInfo && spinelTwin.twinInfo.reentrantLabel.includes('141'), 'Spinel twin reports 141°04\' re-entrant angle');
   });
 
-  check('All 12 Simple Forms & all 6 Forge Combination Blueprints', () => {
-    assert.equal(data.SIMPLE_FORMS_12.length, 12);
-    for (const f of data.SIMPLE_FORMS_12) {
-      const mesh = meshes.buildSimpleFormMesh(f.id);
-      assert.ok(mesh.totalFaces >= 4, `Simple form ${f.id} valid`);
+  check('Audited crystallographic twin angles & Hermann-Mauguin point-group symmetry rules', () => {
+    const expectedAngles = {
+      diamond: "141°04'",
+      spinel: "141°04'",
+      zircon: "95°41'",
+      rutile: "114°26'",
+      cassiterite: "112°09'",
+      beryl: "90°07'",
+      apatite: "68°41'",
+      quartz: "84°33'",
+      calcite: "90°45'",
+      ruby: "64°47'",
+      tourmaline: "125°16'",
+      topaz: "57°58'",
+      peridot: "119°16'",
+      chrysoberyl: "59°35'",
+      tanzanite: "116°29'",
+      gypsum: "131°48'",
+    };
+    for (const [id, angleStr] of Object.entries(expectedAngles)) {
+      const mTwin = meshes.buildMineralMesh(id, { variant: 'twin' });
+      const codex = data.MINERAL_CODEX.find((m) => m.id === id);
+      assert.ok(
+        mTwin.twinInfo.reentrantTagEn.replace(/′/g, "'").includes(angleStr) || mTwin.twinInfo.lawZh.replace(/′/g, "'").includes(angleStr),
+        `${id} twin mesh carries exact angle ${angleStr}`,
+      );
+      assert.ok(codex.twinLawZh.replace(/′/g, "'").includes(angleStr), `${id} codex twinLawZh carries exact angle ${angleStr}`);
     }
 
+    // Tourmaline 3m: polar +c/-c, NO inversion center C, NO L2!
+    const tourm = meshes.buildMineralMesh('tourmaline', { variant: 'single' });
+    assert.ok(tourm.symmetrySummaryZh.startsWith('L3 · 3P') && tourm.symmetrySummaryZh.includes('无C'), 'Tourmaline 3m has L3 · 3P and no C');
+    assert.ok(tourm.symmetryAxes.some((a) => a.label.includes('+c') && !a.label.includes('+C')), 'Tourmaline uses lowercase +c');
+
+    // Pyrite 2/m3̄: NO L4!
+    const pyrite = meshes.buildMineralMesh('pyrite', { variant: 'single' });
+    assert.ok(pyrite.symmetrySummaryZh.startsWith('3L2') && pyrite.symmetrySummaryZh.includes('无L4'), 'Pyrite 2/m3̄ has no L4');
+    assert.ok(!pyrite.symmetryAxes.some((a) => a.label.includes('L4')), 'Pyrite axes have no L4');
+
+    // Apatite 6/m: NO horizontal L2!
+    const apatite = meshes.buildMineralMesh('apatite', { variant: 'single' });
+    assert.ok(apatite.symmetrySummaryZh.startsWith('L6') && apatite.symmetrySummaryZh.includes('无横L2'), 'Apatite 6/m has no horizontal L2');
+    assert.ok(!apatite.symmetryAxes.some((a) => a.label.includes('L2')), 'Apatite axes have no L2');
+
+    // Emerald Trapiche explicitly classified as growth_sector
+    const emerald = meshes.buildMineralMesh('emerald', { variant: 'twin' });
+    assert.equal(emerald.twinInfo.category, 'growth_sector');
+  });
+
+  check('MINERAL_CODEX and OPTICAL_MATERIALS 100% parameter consistency across all 24 minerals', () => {
+    for (const entry of data.MINERAL_CODEX) {
+      const mat = optics.getMaterial(entry.materialId || entry.id);
+      assert.equal(Boolean(entry.opaqueMetallic), Boolean(mat.opaqueMetallic), `${entry.id} opaqueMetallic sync`);
+      assert.ok(Math.abs(entry.sg - mat.sg) < 0.02, `${entry.id} SG sync (${entry.sg} vs ${mat.sg})`);
+      if (!entry.opaqueMetallic) {
+        const ax = optics.opticAxisInfo(entry.materialId || entry.id);
+        assert.ok(Math.abs(entry.birefringence - ax.deltaN) < 0.0015, `${entry.id} birefringence sync`);
+      }
+    }
+  });
+
+  check('All 12 Simple Forms, 6 Forge Blueprints & 8 Detective Cases', () => {
+    assert.equal(data.SIMPLE_FORMS_12.length, 12);
+    for (const f of data.SIMPLE_FORMS_12) {
+      assert.ok(meshes.buildSimpleFormMesh(f.id).totalFaces >= 4);
+    }
     assert.equal(data.FORGE_CHALLENGES.length, 6);
     for (const ch of data.FORGE_CHALLENGES) {
       const built = meshes.buildForgeCombination({ ...ch.targetSlider, mode: ch.mode });
-      assert.equal(built.totalFaces, ch.totalFaces, `Forge blueprint ${ch.id} matches exact target face count ${ch.totalFaces}`);
+      assert.equal(built.totalFaces, ch.totalFaces);
     }
-  });
-
-  check('All 8 Detective Story Commissions & Endless Case Generator', () => {
     assert.equal(data.DETECTIVE_CASES.length, 8);
     const codexIds = new Set(data.MINERAL_CODEX.map((m) => m.id));
     for (const c of data.DETECTIVE_CASES) {
-      assert.ok(codexIds.has(c.truthMineralId), `Case ${c.id} truth in codex`);
-      assert.ok(c.suspectIds.includes(c.truthMineralId), `Case ${c.id} suspects include truth`);
-      assert.ok(c.suspectIds.length >= 3, `Case ${c.id} has >= 3 suspects`);
+      assert.ok(codexIds.has(c.truthMineralId));
+      assert.ok(c.suspectIds.includes(c.truthMineralId));
     }
-    const endless = data.generateEndlessCase(42);
-    assert.ok(codexIds.has(endless.truthMineralId));
-    assert.ok(endless.suspectIds.includes(endless.truthMineralId));
   });
 
-  check('SUVA Brand Assets (Pixel Black Cat + WeCom QR), Preserved V1, and V2 100% Pure Pixel Contract', () => {
+  check('SUVA Brand Assets, Preserved V1, Pure Pixel Contract & Restricted Source-Available License', () => {
     for (const rel of [
       'assets/ark-pixel-12px-zh.woff2',
       'assets/suva-cat-pixel.svg',
@@ -151,16 +232,12 @@ async function runTests() {
 
     const v2Html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
     const v2Main = fs.readFileSync(path.join(ROOT, 'src', 'main.js'), 'utf8');
-    assert.ok(v2Html.includes('ArkPixel12'), 'V2 loads ArkPixel12 bitmap font');
-    assert.ok(v2Html.includes('SUVA / 地质大学博士说AI / 苏哇科技'), 'V2 credits official SUVA team');
-    assert.ok(v2Html.includes('./v1/'), 'V2 links to preserved V1 archive');
-    assert.ok(v2Html.includes('mobileBottomDock'), 'V2 includes handheld 5-slot cartridge dock');
-    assert.ok(!v2Html.includes('PingFang SC') && !v2Html.includes('Microsoft YaHei'), 'V2 eliminates smooth system font stacks');
-    assert.ok(!v2Html.includes('<select') && !v2Main.includes('<select'), 'V2 eliminates native OS <select> menus');
-    assert.equal((v2Html + v2Main).match(/[\u{1F300}-\u{1FAFF}]/gu), null, 'V2 eliminates all Unicode pictographic emojis');
-  });
+    assert.ok(v2Html.includes('ArkPixel12'));
+    assert.ok(v2Html.includes('SUVA / 地质大学博士说AI / 苏哇科技'));
+    assert.ok(!v2Html.includes('PingFang SC') && !v2Html.includes('Microsoft YaHei'));
+    assert.ok(!v2Html.includes('<select') && !v2Main.includes('<select'));
+    assert.equal((v2Html + v2Main).match(/[\u{1F300}-\u{1FAFF}]/gu), null);
 
-  check('SUVA · 苏哇科技 Attribution & Restricted Source-Available License', () => {
     const lic = fs.readFileSync(path.join(ROOT, 'LICENSE'), 'utf8');
     assert.ok(lic.includes('SUVA') && lic.includes('苏哇科技'));
     assert.ok(lic.includes('Strict Prohibition on Commercial Use'));

@@ -1,8 +1,8 @@
 {
   "name": "pixel-crystal",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
-  "description": "SUVA / 地质大学博士说AI / 苏哇科技 · 像素晶体 (PixelCrystal V2) — 100% Pure Pixel Crystal Optics Arcade & Dedicated Handheld Game",
+  "description": "SUVA / 地质大学博士说AI / 苏哇科技 · 像素晶体 (PixelCrystal V2.1) — 100% Pure Pixel Crystal Optics Arcade & Dedicated Handheld Game",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE",
   "author": "SUVA / 地质大学博士说AI / 苏哇科技 (SUVA Tech)",

@@ -568,16 +568,39 @@ export class PixelEngine {
   }
 
   _normalizeText(text) {
-    return String(text || '')
+    const barredMap = { '1': '\uE001', '2': '\uE002', '3': '\uE003', '4': '\uE004', '6': '\uE006' };
+    const pre = String(text || '')
+      .replace(/([12346])\u0304/g, (_, d) => barredMap[d] || d)
       .replace(/[₀₁₂₃₄₅₆₇₈₉]/g, (c) => String(c.charCodeAt(0) - 0x2080))
       .replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]/g, (c) => {
         const map = { '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4', '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9' };
         return map[c] || c;
       })
+      .replace(/[′’]/g, "'")
+      .replace(/[″”]/g, '"')
+      .replace(/∧/g, '^')
       .replace(/[–—−]/g, '-')
       .replace(/×/g, 'X')
-      .replace(/~/g, '=')
+      .replace(/~/g, '=');
+
+    // Protect standalone lowercase crystallographic axis tokens (c^c, +c, -c, a1..a3, a, b, c, r{)
+    const tokens = [];
+    const masked = pre
+      .replace(/(^|[^A-Za-z0-9])r(?=\{)/g, (_, prefix) => {
+        const idx = tokens.length;
+        tokens.push('r');
+        return `${prefix}\uE010${idx}\uE011`;
+      })
+      .replace(/(^|[^A-Za-z0-9])(c\^c|[+-]?[abc][1-3]?)(?=[^A-Za-z0-9]|$)/g, (_, prefix, tok) => {
+        const idx = tokens.length;
+        tokens.push(tok);
+        return `${prefix}\uE010${idx}\uE011`;
+      });
+
+    return masked
       .toUpperCase()
+      .replace(/\uE010(\d+)\uE011/g, (_, idx) => tokens[Number(idx)] || '')
+      .replace(/Α/g, 'α')
       .replace(/Λ/g, 'λ')
       .replace(/Θ/g, 'θ');
   }
@@ -1119,22 +1142,81 @@ export class PixelEngine {
         this.drawLine(pA[0], pA[1], pB[0], pB[1], col, 4, 1);
         this.drawSparkle(pB[0], pB[1], 2, col);
         if (ax.label) {
-          this.drawTag(ax.label, pB[0] + 5, pB[1] - 6, COL32.inkBlack, col, null, false);
+          const wAx = this.measureText(ax.label, 1, 1) + 10;
+          const axTagX = Math.max(8, Math.min(this.width - wAx - 8, pB[0] + 6));
+          const axTagY = Math.max(30, Math.min(this.height - 24, pB[1] - 6));
+          this.drawTag(ax.label, axTagX, axTagY, COL32.inkBlack, col, null, false);
         }
       }
     }
 
-    // 5. Optional Twin Plane & Re-entrant Angle Callout (pixel_04 homage!)
+    // 5. Optional Twin Plane & Re-entrant Angle Callout (True 3D Projected!)
     if (showTwinCallout && (mesh.twinInfo || solids.length > 1)) {
-      const reMatch = String(mesh.twinInfo?.reentrantLabel || '').match(/[0-9]+(?:\.[0-9]+)?°[0-9']*/);
-      const lawMatch = String(mesh.twinInfo?.lawZh || '').match(/\{[0-9-]+\}/);
-      const twinLabel = reMatch ? `RE-ENTRANT ${reMatch[0]}` : 'RE-ENTRANT TWIN';
-      const planeLabel = lawMatch ? `${lawMatch[0]} TWIN LAW` : 'TWIN INTERFACE';
-      this.drawLine(centerX - 96, cy + 4, centerX + 96, cy + 4, COL32.limeDark, 4, 1);
-      this.drawCircle(centerX + 34, cy + 4, 12, COL32.pink, true);
-      this.drawLine(centerX + 42, cy - 4, centerX + 58, cy - 28, COL32.lime, 0, 1);
-      this.drawTag(planeLabel, centerX - 112, cy - 16, COL32.inkBlack, COL32.lime, null, true);
-      this.drawTag(twinLabel, centerX + 24, cy - 44, COL32.inkBlack, COL32.lime, COL32.lime, true);
+      const ti = mesh.twinInfo || {};
+      const planeLabel = ti.planeLabelEn || 'TWIN LAW';
+      const twinLabel = String(ti.reentrantTagEn || 'RE-ENTRANT TWIN').replace(/^C\^C\b/, 'c^c');
+
+      const origStage = crystToStage(ti.planeOrigin3D || [0, 0, 0]);
+      const dirStage = norm3(crystToStage(ti.traceDir3D || [1, 0, 0]));
+      const traceSpan = maxR * 1.18;
+      const trA = project3D(
+        rotateXYZ(
+          [
+            origStage[0] - dirStage[0] * traceSpan,
+            origStage[1] - dirStage[1] * traceSpan,
+            origStage[2] - dirStage[2] * traceSpan,
+          ],
+          rotX,
+          rotY,
+          rotZ
+        )
+      );
+      const trB = project3D(
+        rotateXYZ(
+          [
+            origStage[0] + dirStage[0] * traceSpan,
+            origStage[1] + dirStage[1] * traceSpan,
+            origStage[2] + dirStage[2] * traceSpan,
+          ],
+          rotX,
+          rotY,
+          rotZ
+        )
+      );
+      this.drawLine(trA[0], trA[1], trB[0], trB[1], COL32.limeDark, 4, 1);
+
+      const notchStage = crystToStage(ti.notchAnchor3D || [0, 0, 0.55 * maxR]);
+      const n2d = project3D(rotateXYZ(notchStage, rotX, rotY, rotZ));
+      const nx = Math.max(20, Math.min(this.width - 20, n2d[0]));
+      const ny = Math.max(24, Math.min(this.height - 24, n2d[1]));
+      this.drawCircle(nx, ny, 11, COL32.pink, true);
+
+      const wTwin = this.measureText(twinLabel, 1, 1) + 10;
+      const wPlane = this.measureText(planeLabel, 1, 1) + 10;
+      const goRight = nx >= centerX - 6;
+      const goUp = ny <= cy + 12;
+      const leadX = nx + (goRight ? 20 : -20);
+      const leadY = ny + (goUp ? -20 : 18);
+      let twinTagX = goRight ? leadX - 4 : leadX - wTwin + 4;
+      let twinTagY = goUp ? leadY - 12 : leadY + 2;
+      twinTagX = Math.max(8, Math.min(this.width - wTwin - 8, twinTagX));
+      twinTagY = Math.max(24, Math.min(this.height - 22, twinTagY));
+      this.drawLine(nx, ny, leadX, leadY, COL32.lime, 0, 1);
+
+      // Anchor plane law tag near whichever trace endpoint is farther from the notch tag
+      const dA = Math.hypot(trA[0] - twinTagX, trA[1] - twinTagY);
+      const dB = Math.hypot(trB[0] - twinTagX, trB[1] - twinTagY);
+      const farEnd = dA >= dB ? trA : trB;
+      let planeTagX = farEnd[0] < centerX ? farEnd[0] - wPlane * 0.65 : farEnd[0] - wPlane * 0.35;
+      let planeTagY = farEnd[1] < cy ? farEnd[1] - 14 : farEnd[1] + 6;
+      planeTagX = Math.max(8, Math.min(this.width - wPlane - 8, planeTagX));
+      planeTagY = Math.max(24, Math.min(this.height - 22, planeTagY));
+      if (Math.abs(planeTagY - twinTagY) < 16 && planeTagX < twinTagX + wTwin + 6 && planeTagX + wPlane + 6 > twinTagX) {
+        planeTagY = planeTagY > this.height * 0.5 ? Math.max(24, twinTagY - 18) : Math.min(this.height - 22, twinTagY + 18);
+      }
+
+      this.drawTag(planeLabel, planeTagX, planeTagY, COL32.inkBlack, COL32.lime, null, true);
+      this.drawTag(twinLabel, twinTagX, twinTagY, COL32.inkBlack, COL32.lime, COL32.lime, true);
     }
 
     // 6. Selected Face & Two-Face Interfacial Angle Goniometer Overlay
@@ -2004,10 +2086,11 @@ export class PixelEngine {
     const nToY = (n) => scaleY + Math.round(((n - minN) / (maxN - minN)) * scaleH);
 
     // Bright illuminated sodium field at bottom, dark TIR shadow above shadow edge!
+    const isOpaque = Boolean(refData?.isOpaqueMetallic);
     const overLimit = Boolean(refData?.overLimit);
     const nLow = refData?.nLow ?? refData?.nMin ?? 1.544;
     const nHigh = refData?.nHigh ?? refData?.nMax ?? 1.553;
-    const isDR = Boolean(refData?.isDoublyRefractive) && !overLimit;
+    const isDR = Boolean(refData?.isDoublyRefractive) && !overLimit && !isOpaque;
 
     // Polarizer rotation blends focus between nLow and nHigh shadow edge
     const polW = Math.sin((polarizerDeg * Math.PI) / 180) ** 2;
@@ -2017,7 +2100,9 @@ export class PixelEngine {
     for (let py = scaleY; py < scaleY + scaleH; py++) {
       for (let px = scaleX; px < scaleX + scaleW; px++) {
         let col;
-        if (overLimit) {
+        if (isOpaque) {
+          col = ((px + py) & 1) === 0 ? COL32.amber : COL32.darkPanel;
+        } else if (overLimit) {
           // Entire scale shadowed above 1.79 contact liquid!
           const liqY = nToY(1.79);
           col = py < liqY
@@ -2054,7 +2139,9 @@ export class PixelEngine {
     }
 
     // Crisp shadow-edge cursor markers
-    if (overLimit) {
+    if (isOpaque) {
+      this.drawTag(`OPAQUE R=${refData?.reflectancePct || 54.5}%`, scaleX + 6, scaleY + 62, COL32.amber, COL32.inkBlack, COL32.inkBlack, true);
+    } else if (overLimit) {
       const liqY = nToY(1.79);
       this.drawLine(scaleX - 4, liqY, scaleX + scaleW + 4, liqY, COL32.pink, 2, 2);
       this.drawTag('OTL > 1.79!', scaleX + 18, scaleY + 56, COL32.pink, COL32.inkWhite, COL32.inkBlack, true);
