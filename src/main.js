@@ -177,7 +177,7 @@ const state = {
 
   calciteMaterialId: 'calcite',
   calciteRotDeg: 36,
-  calciteTiltDeg: 45,
+  calciteTiltDeg: 44.6,
   calciteThicknessMm: 7.5,
   calciteAnalyzerOn: false,
   calciteAnalyzerDeg: 0,
@@ -726,8 +726,8 @@ function renderDetectiveStationControls() {
       </div>
       <div class="slider-row">
         <div class="slider-label">
-          <span>晶内激光全反射角 θ1</span>
-          <span class="slider-val" id="detTirAngleTxt">${state.detTirAngleDeg}° (θc=${tir.criticalDeg.toFixed(1)}°)</span>
+          <span>晶内对空气全反射角 θ1 (空气 n=1.00)</span>
+          <span class="slider-val" id="detTirAngleTxt">${tir.isOpaqueMetallic ? '金属不透光' : `${state.detTirAngleDeg}° (θc=${tir.criticalDeg.toFixed(1)}°)`}</span>
         </div>
         <input type="range" id="detTirSlider" min="10" max="65" value="${state.detTirAngleDeg}" />
       </div>
@@ -752,7 +752,7 @@ function renderDetectiveStationControls() {
     document.getElementById('detTirSlider')?.addEventListener('input', (e) => {
       state.detTirAngleDeg = Number(e.target.value);
       const t2 = snellBenchRay(matId, state.detTirAngleDeg, true);
-      document.getElementById('detTirAngleTxt').textContent = `${state.detTirAngleDeg}° (${t2.tir ? '全反射 TIR!' : '透射漏光'})`;
+      document.getElementById('detTirAngleTxt').textContent = t2.isOpaqueMetallic ? '金属不透光' : `${state.detTirAngleDeg}° (${t2.tir ? '全反射 TIR!' : '透射漏光'})`;
       playLaserSweep(state.detTirAngleDeg / 65);
       if (t2.tir) unlockAchievementStamp('stamp_first_refraction');
     });
@@ -1197,10 +1197,10 @@ function renderForgeUI() {
     ]
     : state.forgeMode === 'hexagonal'
       ? [
-        `${PIXEL_ICONS.gemPink100(16)} 粉红墨 · 六方柱 {10-10}`,
-        `${PIXEL_ICONS.gemBlue111(16)} 钴蓝墨 · 六方双锥 {10-11}`,
+        `${PIXEL_ICONS.gemPink100(16)} 粉红墨 · 六方柱 {101̄0}`,
+        `${PIXEL_ICONS.gemBlue111(16)} 钴蓝墨 · 六方双锥 {101̄1}`,
         `${PIXEL_ICONS.gemLime110(16)} 黄绿墨 · 平行双面 {0001}`,
-        `${PIXEL_ICONS.gemCoral211(16)} 珊瑚墨 · 第二六方柱 {11-20}`,
+        `${PIXEL_ICONS.gemCoral211(16)} 珊瑚墨 · 第二六方柱 {112̄0}`,
       ]
       : [
         `${PIXEL_ICONS.gemPink100(16)} 粉红墨 · 立方体 {100}`,
@@ -1261,7 +1261,7 @@ function updateForgeMatchMeter() {
   ) {
     unlockAchievementStamp('stamp_forge_26');
   }
-  if (built.totalFaces >= 36) {
+  if (built.totalFaces === 50) {
     unlockAchievementStamp('stamp_forge_50');
   }
 
@@ -1503,12 +1503,12 @@ function renderOpticsUI() {
           <span>晶片厚度 d (mm)</span>
           <span class="slider-val" id="optConoThickVal">${state.conoThicknessMm.toFixed(1)} mm</span>
         </div>
-        <input type="range" id="optConoThickSlider" min="3" max="45" value="${Math.round(state.conoThicknessMm * 10)}" />
+        <input type="range" id="optConoThickSlider" min="1" max="45" value="${Math.round(state.conoThicknessMm * 10)}" />
       </div>
       <div class="pill-row">
         <button type="button" id="optConoGypBtn" class="pill-btn ${state.conoGypsumOn ? 'is-active' : ''}">+530nm 石膏板测光性正负</button>
         ${state.conoMaterialId === 'quartz' ? `
-        <button type="button" id="optConoHandBtn" class="pill-btn">${state.conoHandedness > 0 ? '右旋石英 D' : '左旋石英 L'}</button>
+        <button type="button" id="optConoHandBtn" class="pill-btn" title="插入石膏试板可区分螺旋象限旋向">${state.conoHandedness > 0 ? '右旋石英 D (配合石膏板)' : '左旋石英 L (配合石膏板)'}</button>
         ` : ''}
       </div>
     `;
@@ -1548,6 +1548,19 @@ function updateOpticsReadouts() {
   if (b === 'dispersion') {
     const fan = prismDispersionFan(state.dispMaterialId, state.dispApexDeg, state.dispIncidentDeg);
     const tir = snellBenchRay(state.dispMaterialId, state.dispIncidentDeg, true);
+    if (fan.isOpaqueMetallic) {
+      el.opticsReadoutBody.innerHTML = `
+        <div class="readout-cell">
+          <span class="readout-k">金属反射特征</span>
+          <span class="readout-v">不透明金属 (R≈${fan.reflectancePct}%)</span>
+        </div>
+        <div class="readout-cell">
+          <span class="readout-k">临界角 θc = arcsin(1/n)</span>
+          <span class="readout-v">透射折射不适用</span>
+        </div>
+      `;
+      return;
+    }
     const rRed = fan.rays[0];
     const rBlue = fan.rays[fan.rays.length - 1];
     if (!rRed.tir && !rBlue.tir) {
@@ -1686,9 +1699,11 @@ function getCurrentContextMineral() {
       nameZh: mat.nameZh,
       nameEn: mat.en,
       systemZh: `光学实验台 · ${state.opticsBench.toUpperCase()}`,
-      opticLabel: mat.opticClass === 'isotropic'
-        ? `SG ${mat.sg} · n=${mat.indices[0].toFixed(3)} (均质单折)`
-        : `SG ${mat.sg} · n=${mat.indices[0].toFixed(3)}-${mat.indices[mat.indices.length - 1].toFixed(3)}`,
+      opticLabel: mat.opaqueMetallic
+        ? `SG ${mat.sg} · 不透明金属反射 (R≈${mat.reflectancePct}%)`
+        : mat.className === 'isotropic'
+          ? `SG ${mat.sg} · n=${mat.indices[0].toFixed(3)} (均质单折)`
+          : `SG ${mat.sg} · n=${mat.indices[0].toFixed(3)}-${mat.indices[mat.indices.length - 1].toFixed(3)}`,
       diagnosticTip: mat.noteZh,
     };
   }
@@ -2199,7 +2214,7 @@ function renderFrame(nowMs) {
         const cono = getCachedConoscope(matId, {
           stageDeg: state.detStageDeg,
           tiltDeg: 0,
-          thicknessMm: 1.8,
+          thicknessMm: state.detGypsumOn && matId !== 'quartz' ? 0.25 : 1.8,
           gypsumPlate: state.detGypsumOn,
         });
         engine.drawConoscopeBench({

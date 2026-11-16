@@ -165,7 +165,7 @@ const state = {
 
   calciteMaterialId: 'calcite',
   calciteRotDeg: 36,
-  calciteTiltDeg: 45,
+  calciteTiltDeg: 44.6,
   calciteThicknessMm: 7.5,
   calciteAnalyzerOn: false,
   calciteAnalyzerDeg: 0,
@@ -1055,7 +1055,7 @@ function updateForgeMatchMeter() {
   ) {
     unlockAchievementStamp('stamp_forge_26');
   }
-  if (built.totalFaces >= 36) {
+  if (built.totalFaces === 50) {
     unlockAchievementStamp('stamp_forge_50');
   }
 
@@ -1291,7 +1291,7 @@ function renderOpticsUI() {
           <span>晶片厚度 d (mm)</span>
           <span class="slider-val" id="optConoThickVal">${state.conoThicknessMm.toFixed(1)} mm</span>
         </div>
-        <input type="range" id="optConoThickSlider" min="3" max="45" value="${Math.round(state.conoThicknessMm * 10)}" />
+        <input type="range" id="optConoThickSlider" min="1" max="45" value="${Math.round(state.conoThicknessMm * 10)}" />
       </div>
       <div class="pill-row">
         <button type="button" id="optConoGypBtn" class="pill-btn ${state.conoGypsumOn ? 'is-active' : ''}">+530nm 石膏试板测定正负光性</button>
@@ -1475,7 +1475,11 @@ function getCurrentContextMineral() {
       nameZh: mat.nameZh,
       nameEn: mat.en,
       systemZh: `光学实验台 · ${state.opticsBench.toUpperCase()}`,
-      opticLabel: `SG ${mat.sg} · n=${mat.indices.map((n) => n.toFixed(3)).join('/')}`,
+      opticLabel: mat.opaqueMetallic
+        ? `SG ${mat.sg} · 不透明金属反射 (R≈${mat.reflectancePct}%)`
+        : mat.className === 'isotropic'
+          ? `SG ${mat.sg} · n=${mat.indices[0].toFixed(3)} (均质单折)`
+          : `SG ${mat.sg} · n=${mat.indices.map((n) => n.toFixed(3)).join('/')}`,
       diagnosticTip: mat.noteZh,
     };
   }

@@ -178,7 +178,7 @@ export function exportPixelPostcard({
   ctx.strokeStyle = RISO_PALETTE.inkBlack;
   ctx.lineWidth = 2;
   ctx.strokeRect(lx + 1, 71, 366, 28);
-  drawPixelGlyphText(ctx, 'SUVA · PIXEL CRYSTAL · V2.0', lx + 12, 78, 2, RISO_PALETTE.inkBlack, 1);
+  drawPixelGlyphText(ctx, 'SUVA · PIXEL CRYSTAL · V2.1', lx + 12, 78, 2, RISO_PALETTE.inkBlack, 1);
 
   // Pure 48px (4x12px) Bitmap Pixel Title "像素晶体"
   ctx.font = '400 48px "ArkPixel12", monospace';

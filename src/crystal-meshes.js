@@ -308,8 +308,8 @@ function transformSolid(solid, mapPoint, mapNormal = null, overrideRampKey = nul
 }
 
 // Normalize an entire multi-solid assembly rigidly around [0, 0, 0] with max radius ~ targetRadius
-// Also returns transform(pt) so 3D twin callout anchors land on the exact normalized seam/notch!
-function normalizeAssemblyWithTransform(solids, targetRadius = 1.0) {
+// When preserveOrigin is true (single crystals & simple forms), keep crystallographic origin [0,0,0] intact so polar/hemimorphic axes pass strictly through the point-group origin!
+function normalizeAssemblyWithTransform(solids, targetRadius = 1.0, { preserveOrigin = false } = {}) {
   let minX = Infinity;
   let minY = Infinity;
   let minZ = Infinity;
@@ -328,9 +328,9 @@ function normalizeAssemblyWithTransform(solids, targetRadius = 1.0) {
     }
   }
 
-  const cx = (minX + maxX) / 2;
-  const cy = (minY + maxY) / 2;
-  const cz = (minZ + maxZ) / 2;
+  const cx = preserveOrigin ? 0 : (minX + maxX) / 2;
+  const cy = preserveOrigin ? 0 : (minY + maxY) / 2;
+  const cz = preserveOrigin ? 0 : (minZ + maxZ) / 2;
 
   let maxR = 1e-6;
   for (const s of solids) {
@@ -358,8 +358,8 @@ function normalizeAssemblyWithTransform(solids, targetRadius = 1.0) {
   return { solids: normSolids, mapPoint, scale: k, center: [cx, cy, cz] };
 }
 
-function normalizeAssembly(solids, targetRadius = 1.0) {
-  return normalizeAssemblyWithTransform(solids, targetRadius).solids;
+function normalizeAssembly(solids, targetRadius = 1.0, opts = {}) {
+  return normalizeAssemblyWithTransform(solids, targetRadius, opts).solids;
 }
 
 function explodeSolids(solids, explodeAmount = 0) {
@@ -877,6 +877,26 @@ function buildMetricPlanes({
 // Exact Spinel Law {111} Contact Twin (Macle): two {111} octahedra clipped on (111),
 // top half rotated 180 deg around [111] -> exact arccos(-7/9) = 141 deg 04' re-entrant V-notches!
 // Oriented with [111] twin axis along +Z so all 3 equatorial 141 deg 04' V-notches are cleanly visible!
+function orthoFormPlanes(cell, [h, k, l], distance, meta = {}) {
+  const seen = new Set();
+  const out = [];
+  for (const sh of h === 0 ? [0] : [-1, 1]) {
+    for (const sk of k === 0 ? [0] : [-1, 1]) {
+      for (const sl of l === 0 ? [0] : [-1, 1]) {
+        const mh = sh * Math.abs(h);
+        const mk = sk * Math.abs(k);
+        const ml = sl * Math.abs(l);
+        const key = `${mh},${mk},${ml}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          out.push(wulffPlane(millerNormal(cell, [mh, mk, ml]), distance, meta));
+        }
+      }
+    }
+  }
+  return out;
+}
+
 function buildSpinelLawTwin({ compression = 0.64 } = {}) {
   const twinAxis = unit3([1, 1, 1]);
   // Orthonormal frame mapping [1, 1, 1]/sqrt(3) -> [0, 0, 1] and [1, -1, 0]/sqrt(2) -> [1, 0, 0]
@@ -962,7 +982,7 @@ const MINERAL_BUILDERS = {
         cAxisAngleDeg: 141.06,
         planeLabelEn: '{111} SPINEL LAW',
         reentrantTagEn: "RE-ENTRANT 141°04'",
-        lawZh: "尖晶石律 {111} 八面体接触双晶 (沿 [111] 旋转 180°)",
+        lawZh: "尖晶石律 {111} 八面体接触双晶 (沿 [111] 旋转 180° · 凹角 141°04')",
         reentrantLabel: "特征双晶凹入角 141°04' (补角 38°56')",
         planeOrigin3D: [0, 0, 0],
         traceDir3D: [1, 0, 0],
@@ -1004,7 +1024,7 @@ const MINERAL_BUILDERS = {
   },
 
   garnet() {
-    // Authentic {110} + {211} 36-facet garnet habit; rare {211} contact twin reference (Mallard's Law: (211) is NOT a mirror in m-3m!)
+    // Authentic {110} + {211} 36-facet garnet habit; rare {211} contact twin reference on (112) (c^c = 109°28', supplement 70°32')
     const basePlanes = [
       ...planesDodeca110(1.0, 'ruby', '菱形十二面体 {110}'),
       ...planesTrap211(1.08, 'trap', '四角三八面体 {211}'),
@@ -1014,12 +1034,12 @@ const MINERAL_BUILDERS = {
     const rareTwin = buildInclinedContactTwin(basePlanes, cell, [1, 1, 2], {
       armOffset: 0.34,
       scaleSingle: 0.90,
-      planeHklLabel: '(211)',
+      planeHklLabel: '(112)',
       planeLabelEn: '{211} RARE TWIN',
-      lawZh: '石榴石罕见 {211} 接触双晶对照 (自然界极罕见双晶 · 非对称面接合)',
+      lawZh: "石榴石罕见 {211} 接触双晶对照 ((112) 接合面 · c∧c = 109°28')",
       category: 'contact',
       isRareOrGrowth: true,
-      reentrantPrefixZh: '{211} 双晶凹槽夹角',
+      reentrantPrefixZh: '{211} 双晶 (112) 凹槽夹角',
     });
     return {
       systemId: 'cubic',
@@ -1099,15 +1119,20 @@ const MINERAL_BUILDERS = {
     const cell = buildLatticeBasis({ a: 4.5937, c: 2.9587 });
     const planes = [];
     for (const [h, k] of [[1, 0], [0, 1]]) {
-      planes.push(...pairedWulff(millerNormal(cell, [h, k, 0]), 0.54, { hkl: '{100}', familyZh: '四方柱 {100}', rampKey: 'ruby' }));
+      planes.push(...pairedWulff(millerNormal(cell, [h, k, 0]), 0.54, { hkl: '{100}', familyZh: '四方柱 a {100}', rampKey: 'ruby' }));
     }
     for (const [h, k] of [[1, 1], [1, -1]]) {
-      planes.push(...pairedWulff(millerNormal(cell, [h, k, 0]), 0.56, { hkl: '{110}', familyZh: '次四方柱 {110}', rampKey: 'pyrito' }));
+      planes.push(...pairedWulff(millerNormal(cell, [h, k, 0]), 0.56, { hkl: '{110}', familyZh: '次四方柱 m {110}', rampKey: 'pyrito' }));
+    }
+    for (const [h, k] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      for (const l of [-1, 1]) {
+        planes.push(wulffPlane(millerNormal(cell, [h, k, l]), 1.03, { hkl: '{101}', familyZh: '四方双锥 e {101}', rampKey: 'dodeca' }));
+      }
     }
     for (const sx of [-1, 1]) {
       for (const sy of [-1, 1]) {
         for (const sz of [-1, 1]) {
-          planes.push(wulffPlane(millerNormal(cell, [sx, sy, sz]), 1.06, { hkl: '{101}/{111}', familyZh: '四方双锥 {111}', rampKey: 'pyramid' }));
+          planes.push(wulffPlane(millerNormal(cell, [sx, sy, sz]), 1.06, { hkl: '{111}', familyZh: '四方双锥 s {111}', rampKey: 'pyramid' }));
         }
       }
     }
@@ -1283,7 +1308,7 @@ const MINERAL_BUILDERS = {
   },
 
   apatite() {
-    // Fluorapatite P6_3/m (point group 6/m): a = 9.397 Å, c = 6.878 Å -> rare {11-21} contact twin (c^c = 68°28')
+    // Fluorapatite P6_3/m (point group 6/m): a = 9.397 Å, c = 6.878 Å -> rare {11-21} contact twin (c^c = 68°41')
     const cell = buildLatticeBasis({ a: 9.397, b: 9.397, c: 6.878, gammaDeg: 120 });
     const gPyr = millerNormal(cell, [1, 0, -1, 1]);
     const pyrH = Math.hypot(gPyr[0], gPyr[1]);
@@ -1305,7 +1330,7 @@ const MINERAL_BUILDERS = {
       scaleSingle: 0.86,
       planeHklLabel: '(112̄1)',
       planeLabelEn: '{112̄1} RARE TWIN',
-      lawZh: "氟磷灰石罕见 {112̄1} 接触双晶对照 (6/m 点群 · c∧c = 68°28')",
+      lawZh: "氟磷灰石罕见 {112̄1} 接触双晶对照 (6/m 点群 · c∧c = 68°41')",
       category: 'contact',
       isRareOrGrowth: true,
       reentrantPrefixZh: '{112̄1} 双晶 c∧c 夹角',
@@ -1334,8 +1359,6 @@ const MINERAL_BUILDERS = {
         const ang = Math.PI / 6 + (i * Math.PI) / 3;
         const nx = Math.cos(ang);
         const ny = Math.sin(ang);
-        // Note: for (h,k,i,l) = (1,1,-2,2), phi = 60 deg; rotating by pi - 60 deg = 120 deg puts i=1 (ang=90) & i=4 (ang=270) at +/-Y?
-        // Wait: ang=90 + 120 = 210; ang=330 (i=5) + 120 = 90 (+Y) and ang=150 (i=2) + 120 = 270 (-Y)!
         const isCoplanarFace = flattenFrontBack && (i === 2 || i === 5);
         planes.push(
           wulffPlane([nx, ny, 0], isCoplanarFace ? 0.50 : 0.64, {
@@ -1459,32 +1482,31 @@ const MINERAL_BUILDERS = {
   },
 
   sapphire() {
-    // Ceylon Sapphire (3̄m): true trigonal barrel combining {11-20} prism + steep {22-43} dipyramid + trigonal r {10-11} rhombohedron + {0001}!
-    // Basal {0001} contact twin (180 deg around c [0001] = mirror across (0001) in 3̄m!) creates 3 equatorial re-entrant notches!
+    // Ceylon Sapphire (3̄m): exact 3̄m trigonal barrel combining {11-20} prism + exact 12-face n {22-43} dipyramid + exact 6-face r {10-11} rhombohedron + {0001}!
+    // Basal {0001} contact twin (180 deg around c [0001] ≡ mirror across (0001) in centrosymmetric 3̄m!) creates 3 trigonal equatorial re-entrant notches!
     const cellMorph = buildLatticeBasis({ a: 4.759, b: 4.759, c: 6.4955, gammaDeg: 120 });
     const gR = millerNormal(cellMorph, [1, 0, -1, 1]);
     const rSlope = gR[2] / Math.hypot(gR[0], gR[1]);
+    const gN = millerNormal(cellMorph, [2, 2, -4, 3]);
+    const nHoriz = Math.hypot(gN[0], gN[1]);
+    const nZ = gN[2];
 
     const planes = [
-      ...pairedWulff([0, 0, 1], 1.26, { hkl: '{0001}', familyZh: '刚玉小底面 c {0001}', rampKey: 'pinacoid' }),
-      ...planesRhombohedron(0.95, rSlope * 0.65, 'pyramid', '菱面体 r {101̄1}'),
+      ...pairedWulff([0, 0, 1], 1.18, { hkl: '{0001}', familyZh: '刚玉底面 c {0001}', rampKey: 'pinacoid' }),
+      ...planesRhombohedron(0.86, rSlope, 'pyramid', '正菱面体 r {101̄1}'),
     ];
     for (let i = 0; i < 6; i++) {
       const ang = (i * Math.PI) / 3;
       const nx = Math.cos(ang);
       const ny = Math.sin(ang);
-      planes.push(wulffPlane([nx, ny, 0], 0.78, { hkl: '{112̄0}', familyZh: '六方柱 a {112̄0}', rampKey: 'sapphire' }));
-      // True 3̄m alternating trigonal barrel slant so upper & lower halves are related by 3̄, NOT horizontal mirror!
-      const alt = i % 2 === 0 ? 0.84 : 0.94;
-      const altNeg = i % 2 === 0 ? 0.94 : 0.84;
-      planes.push(wulffPlane([nx, ny, 0.44], alt, { hkl: '{224̄3}', familyZh: '陡六方双锥 n {224̄3}', rampKey: 'octa' }));
-      planes.push(wulffPlane([nx, ny, -0.44], altNeg, { hkl: '{224̄3}', familyZh: '陡六方双锥 n {224̄3}', rampKey: 'octa' }));
+      planes.push(wulffPlane([nx, ny, 0], 0.80, { hkl: '{112̄0}', familyZh: '第二六方柱 a {112̄0}', rampKey: 'sapphire' }));
+      planes.push(...pairedWulff([nx * nHoriz, ny * nHoriz, nZ], 0.85, { hkl: '{224̄3}', familyZh: '陡六方双锥 n {224̄3}', rampKey: 'octa' }));
     }
     const single = solveConvexHalfSpaces(planes);
 
-    // Basal {0001} Contact Twin: clip lower half (z <= 0) after shifting +c up slightly so waist cuts through sloped barrel faces!
+    // Basal {0001} Contact Twin: clip lower half (z <= 0) after shifting -0.28 in z so the 3 upper r {10-11} faces cross z=0 and form 3 sharp V-notches!
     const lowerPlanes = planes.map((p) => {
-      const dShift = dot3(p.normal, [0, 0, -0.26]);
+      const dShift = dot3(p.normal, [0, 0, -0.28]);
       return wulffPlane(p.normal, p.distance + dShift, { ...p, rampKey: 'twinA' });
     });
     lowerPlanes.push(wulffPlane([0, 0, 1], 0.0, { hkl: '(0001)', familyZh: '刚玉底面双晶接合面 (0001)', rampKey: 'twinA' }));
@@ -1509,10 +1531,10 @@ const MINERAL_BUILDERS = {
         planeLabelEn: '{0001} BASAL TWIN',
         reentrantTagEn: '3X WAIST NOTCH',
         lawZh: '蓝宝石 {0001} 底面接触双晶 (沿 c 轴旋转 180° · 3̄m 桶状腰部三组凹槽)',
-        reentrantLabel: '三方桶状锥面跨 (0001) 镜像对称形成三处腰棱凹入角',
+        reentrantLabel: '三方菱面体 r{101̄1} 跨 (0001) 镜像对称形成三处腰棱凹入角',
         planeOrigin3D: [0, 0, 0],
         traceDir3D: [1, 0, 0],
-        notchAnchor3D: [0.68, -0.38, 0],
+        notchAnchor3D: [Math.cos(Math.PI / 6) * 0.62, Math.sin(Math.PI / 6) * 0.62, 0],
       },
     };
   },
@@ -1623,24 +1645,17 @@ const MINERAL_BUILDERS = {
 
   peridot() {
     // Forsterite Peridot Pbnm (mmm): a = 4.756 Å, b = 10.207 Å, c = 5.980 Å
-    // {011} Contact Twin: normal theta = 30°22' -> c^c = 119°16' (supplement 60°44')!
+    // Steno {110} prism interfacial angle = 49°59' (supplement 130°01'); {011} twin c^c = 119°16'!
     const cell = buildLatticeBasis({ a: 4.756, b: 10.207, c: 5.980 });
-    const planes = buildMetricPlanes({
-      angles: [90, 90, 90],
-      a: 0.82,
-      b: 0.58,
-      c: 1.04,
-      corner: 0.22,
-      endSlopeA: 0.66,
-      endSlopeB: 0.60,
-      endCut: 0.24,
-      rampSide: 'prism',
-      rampEnd: 'dodeca',
-      rampCap: 'pinacoid',
-      sideLabel: '橄榄石斜方柱 {110}/{010}',
-      endLabel: '斜方坡面 {021}/{101}',
-      capLabel: '底面 {001}',
-    });
+    const planes = [
+      ...orthoFormPlanes(cell, [0, 1, 0], 0.56, { hkl: '{010}', familyZh: '扁平侧板面 b {010}', rampKey: 'prism' }),
+      ...orthoFormPlanes(cell, [1, 1, 0], 0.76, { hkl: '{110}', familyZh: '镁橄榄石斜方柱 m {110}', rampKey: 'prism' }),
+      ...orthoFormPlanes(cell, [1, 2, 0], 0.75, { hkl: '{120}', familyZh: '斜方柱 s {120}', rampKey: 'prism' }),
+      ...orthoFormPlanes(cell, [0, 2, 1], 0.86, { hkl: '{021}', familyZh: '斜方坡面 k {021}', rampKey: 'dodeca' }),
+      ...orthoFormPlanes(cell, [1, 0, 1], 0.96, { hkl: '{101}', familyZh: '斜方坡面 d {101}', rampKey: 'dodeca' }),
+      ...orthoFormPlanes(cell, [1, 1, 1], 0.91, { hkl: '{111}', familyZh: '斜方双锥 e {111}', rampKey: 'dodeca' }),
+      ...orthoFormPlanes(cell, [0, 0, 1], 1.04, { hkl: '{001}', familyZh: '底面 c {001}', rampKey: 'pinacoid' }),
+    ];
     const single = solveConvexHalfSpaces(planes);
     const vTwin = buildInclinedContactTwin(planes, cell, [0, 1, 1], {
       armOffset: 0.44,
@@ -1662,41 +1677,34 @@ const MINERAL_BUILDERS = {
   },
 
   chrysoberyl() {
-    // Chrysoberyl BeAl2O4 (Pmcn / Pnma, mmm): Pmcn setting a = 5.481 Å, b = 9.415 Å, c = 4.428 Å
-    // {130} (Pnma {031}) prism angle = 2 * atan(3*5.481 / 9.415) ... wait: g_130 = [1/5.481, 3/9.415] -> 2 * atan((1/5.481)/(3/9.415)) = 59°35'!
-    // Iconic Pseudo-Hexagonal Cyclic Trilling (三连晶轮式双晶) with razor-sharp concave peripheral V-notches at every 120 deg seam!
-    const planes = buildMetricPlanes({
-      angles: [90, 90, 90],
-      a: 0.92,
-      b: 0.68,
-      c: 0.36,
-      corner: 0.24,
-      endSlopeA: 0.58,
-      endSlopeB: 0.68,
-      endCut: 0.14,
-      rampSide: 'emerald',
-      rampEnd: 'gold',
-      rampCap: 'pinacoid',
-      sideLabel: '金绿宝石板柱面',
-      endLabel: '斜方双锥 {111}',
-      capLabel: '宽板面 {001}',
-    });
+    // Chrysoberyl BeAl2O4 (Pmcn mmm: a = 5.481 Å, b = 9.415 Å, c = 4.428 Å; equiv. Pbnm {031} / Pnma {310})
+    // {130} prism angle = 2 * atan((1/5.481)/(3/9.415)) = 59°35'; {110} prism angle = 60°26'!
+    // Iconic Pseudo-Hexagonal Cyclic Trilling (三连晶轮式双晶) with concave peripheral V-notches at every 120 deg seam!
+    const cell = buildLatticeBasis({ a: 5.481, b: 9.415, c: 4.428 });
+    const planes = [
+      ...orthoFormPlanes(cell, [0, 0, 1], 0.36, { hkl: '{001}', familyZh: '宽板面 {001}', rampKey: 'pinacoid' }),
+      ...orthoFormPlanes(cell, [1, 0, 0], 0.68, { hkl: '{100}', familyZh: '纵纹板柱面 {100}', rampKey: 'emerald' }),
+      ...orthoFormPlanes(cell, [0, 1, 0], 0.92, { hkl: '{010}', familyZh: '侧板面 {010}', rampKey: 'emerald' }),
+      ...orthoFormPlanes(cell, [1, 1, 0], 0.74, { hkl: '{110}', familyZh: '斜方柱 {110}', rampKey: 'emerald' }),
+      ...orthoFormPlanes(cell, [0, 1, 1], 0.76, { hkl: '{011}', familyZh: '斜方坡面 {011}', rampKey: 'gold' }),
+      ...orthoFormPlanes(cell, [1, 1, 1], 0.79, { hkl: '{111}', familyZh: '斜方双锥 {111}', rampKey: 'gold' }),
+    ];
     const single = solveConvexHalfSpaces(planes);
 
-    // 120 deg sector (-60 deg <= phi <= +60 deg):
-    // Outer {010} pinacoid at phi=0 (d=0.90) + steep prism faces at phi = +/-74 deg (> 60 deg!)
-    // so radius peaks at corners (+/-26 deg, r=1.01) and plunges inward to r=0.72 at every +/-60 deg seam -> true V-notches!
-    const vAng = 74 * RAD;
+    // 120 deg sector (-60 deg <= phi <= +60 deg, local +X = b-axis [010]):
+    // Outer {010} pinacoid at phi=0 (d=0.90) + exact {210} prism faces at phi = +/-atan2(2/a, 1/b) = +/-73.77 deg (> 60 deg!)
+    // so radius peaks at corners and plunges inward at every +/-60 deg seam -> true V-notches!
+    const vAng = Math.atan2(2 / 5.481, 1 / 9.415);
     const sectorPlanes = [
       ...pairedWulff([0, 0, 1], 0.34, { hkl: '{001}', familyZh: '三连晶板面 {001}', rampKey: 'twinA' }),
       wulffPlane([1, 0, 0], 0.90, { hkl: '{010}', familyZh: '外缘板柱面 {010}', rampKey: 'twinA' }),
-      wulffPlane([Math.cos(vAng), Math.sin(vAng), 0], 0.70, { hkl: '{110}', familyZh: '燕尾凹槽斜面 {110}', rampKey: 'twinA' }),
-      wulffPlane([Math.cos(vAng), -Math.sin(vAng), 0], 0.70, { hkl: '{11̄0}', familyZh: '燕尾凹槽斜面 {11̄0}', rampKey: 'twinA' }),
-      // Beveled pyramidal crown edges {111}
+      wulffPlane([Math.cos(vAng), Math.sin(vAng), 0], 0.70, { hkl: '{210}', familyZh: '燕尾凹槽柱面 {210}', rampKey: 'twinA' }),
+      wulffPlane([Math.cos(vAng), -Math.sin(vAng), 0], 0.70, { hkl: '{21̄0}', familyZh: '燕尾凹槽柱面 {21̄0}', rampKey: 'twinA' }),
+      // Beveled pyramidal crown edges {011} & {211}
       ...pairedWulff([1, 0, 1.35], 0.84, { hkl: '{011}', familyZh: '斜方坡面 {011}', rampKey: 'twinA' }),
-      ...pairedWulff([Math.cos(vAng), Math.sin(vAng), 1.15], 0.74, { hkl: '{111}', familyZh: '斜方双锥 {111}', rampKey: 'twinA' }),
-      ...pairedWulff([Math.cos(vAng), -Math.sin(vAng), 1.15], 0.74, { hkl: '{11̄1}', familyZh: '斜方双锥 {11̄1}', rampKey: 'twinA' }),
-      // Exact 120 deg cyclic twin composition planes {130} / {031} at phi = +60 deg and -60 deg
+      ...pairedWulff([Math.cos(vAng), Math.sin(vAng), 1.15], 0.74, { hkl: '{211}', familyZh: '斜方双锥 {211}', rampKey: 'twinA' }),
+      ...pairedWulff([Math.cos(vAng), -Math.sin(vAng), 1.15], 0.74, { hkl: '{21̄1}', familyZh: '斜方双锥 {21̄1}', rampKey: 'twinA' }),
+      // Cyclic twin composition planes {130} (Pbnm {031}) at phi = +60 deg and -60 deg
       wulffPlane([-0.5, Math.sqrt(3) / 2, 0], 0.0, { hkl: '(130)', familyZh: '轮式双晶接合面 (130)', rampKey: 'twinA' }),
       wulffPlane([-0.5, -Math.sqrt(3) / 2, 0], 0.0, { hkl: '(13̄0)', familyZh: '轮式双晶接合面 (13̄0)', rampKey: 'twinA' }),
     ];
@@ -1714,7 +1722,7 @@ const MINERAL_BUILDERS = {
       'gold'
     );
 
-    const seamNotchR = 0.70 / Math.cos((74 - 60) * RAD);
+    const seamNotchR = 0.70 / Math.cos(vAng - 60 * RAD);
     return {
       systemId: 'orthorhombic',
       pointGroup: 'mmm',
@@ -1727,7 +1735,7 @@ const MINERAL_BUILDERS = {
         cAxisAngleDeg: 59.58,
         planeLabelEn: '{130} TRILLING 3X',
         reentrantTagEn: "3X V-NOTCH 59°35'",
-        lawZh: "金绿宝石律 {130}/{031} 假六方轮式三连晶 (单晶折角 59°35' · 三处外缘燕尾凹槽)",
+        lawZh: "金绿宝石律 {130} (Pbnm {031} / Pnma {310}) 假六方轮式三连晶 (单晶折角 59°35' · 三处燕尾凹槽)",
         reentrantLabel: '三扇区外缘交界呈典型向内凹入的 V 字燕尾缺口 (实为斜方二轴晶!)',
         planeOrigin3D: [0, 0, 0.34],
         traceDir3D: [0.5, -Math.sqrt(3) / 2, 0],
@@ -1739,22 +1747,15 @@ const MINERAL_BUILDERS = {
   tanzanite() {
     // Zoisite (Tanzanite) Pnma (mmm): a = 16.212 Å, b = 5.559 Å, c = 10.036 Å -> rare {101} contact twin reference (c^c = 116°29')
     const cell = buildLatticeBasis({ a: 16.212, b: 5.559, c: 10.036 });
-    const planes = buildMetricPlanes({
-      angles: [90, 90, 90],
-      a: 0.72,
-      b: 0.56,
-      c: 1.38,
-      corner: 0.18,
-      endSlopeA: 0.62,
-      endSlopeB: 0.50,
-      endCut: 0.20,
-      rampSide: 'violet',
-      rampEnd: 'sapphire',
-      rampCap: 'pinacoid',
-      sideLabel: '黝帘石纵纹柱面 {110}/{100}',
-      endLabel: '斜方端坡面 {101}/{011}',
-      capLabel: '端面 {001}',
-    });
+    const planes = [
+      ...orthoFormPlanes(cell, [1, 0, 0], 0.68, { hkl: '{100}', familyZh: '黝帘石纵纹柱面 {100}', rampKey: 'violet' }),
+      ...orthoFormPlanes(cell, [0, 1, 0], 0.56, { hkl: '{010}', familyZh: '完全解理侧柱面 {010}', rampKey: 'violet' }),
+      ...orthoFormPlanes(cell, [2, 1, 0], 0.66, { hkl: '{210}', familyZh: '黝帘石斜方柱 {210}', rampKey: 'violet' }),
+      ...orthoFormPlanes(cell, [1, 0, 1], 1.10, { hkl: '{101}', familyZh: '斜方端坡面 {101}', rampKey: 'sapphire' }),
+      ...orthoFormPlanes(cell, [0, 1, 1], 1.08, { hkl: '{011}', familyZh: '斜方端坡面 {011}', rampKey: 'sapphire' }),
+      ...orthoFormPlanes(cell, [2, 1, 1], 1.12, { hkl: '{211}', familyZh: '斜方双锥 {211}', rampKey: 'sapphire' }),
+      ...orthoFormPlanes(cell, [0, 0, 1], 1.34, { hkl: '{001}', familyZh: '端面 {001}', rampKey: 'pinacoid' }),
+    ];
     const single = solveConvexHalfSpaces(planes);
     const rareTwin = buildInclinedContactTwin(planes, cell, [1, 0, 1], {
       armOffset: 0.52,
@@ -1777,13 +1778,13 @@ const MINERAL_BUILDERS = {
 
   // === 6. MONOCLINIC (2) ===
   gypsum() {
-    // Gypsum 2/m (morphological setting beta = 114.1 deg):
-    // Single: tabular on {010} with prism m{110} and inclined monoclinic roof l{111} + base
-    // Twin: Classic (100) Swallowtail Contact Twin — deep V-shaped re-entrant notch at TOP (+Z) and chevron point at BOTTOM (-Z)!
+    // Gypsum 2/m (A2/a morphological setting beta = 114.1 deg; structural I2/a setting beta = 118.43 deg):
+    // Single: tabular on {010} with prism m{110} and inclined monoclinic roof l{011} + base
+    // Twin: Classic (100) Swallowtail Contact Twin — c || (100) so c^c = 0 deg, top ridge V-notch a^a' = 2(180°-β) = 131°48'!
     const cell = buildLatticeBasis({ a: 5.679, b: 15.202, c: 6.286, betaDeg: 114.1 });
-    const g100 = millerNormal(cell, [1, 0, 0]); // [+1, 0, 0] since va=[sinB,0,cosB], vc=[0,0,1]!
-    const g010 = millerNormal(cell, [0, 1, 0]); // [0, 1, 0]
-    const g001 = millerNormal(cell, [0, 0, 1]); // [+0.4083, 0, +0.9128] — slopes DOWN from -X to +X!
+    const g100 = millerNormal(cell, [1, 0, 0]);
+    const g010 = millerNormal(cell, [0, 1, 0]);
+    const g001 = millerNormal(cell, [0, 0, 1]);
     const g110 = millerNormal(cell, [1, 1, 0]);
     const g1m10 = millerNormal(cell, [1, -1, 0]);
     const gRoof = millerNormal(cell, [0, 1, 1]);
@@ -1794,14 +1795,13 @@ const MINERAL_BUILDERS = {
       ...pairedWulff(g010, 0.32, { hkl: '{010}', familyZh: '极完全解理板面 {010}', rampKey: 'pinacoid' }),
       ...pairedWulff(g110, 0.62, { hkl: '{110}', familyZh: '单斜柱 m {110}', rampKey: 'rhomb' }),
       ...pairedWulff(g1m10, 0.62, { hkl: '{110}', familyZh: '单斜柱 m {110}', rampKey: 'rhomb' }),
-      ...pairedWulff(g001, 1.18, { hkl: '{001}/{1̄11}', familyZh: '单斜斜顶面 {1̄11}', rampKey: 'pyramid' }),
+      ...pairedWulff(g001, 1.18, { hkl: '{001}', familyZh: '单斜斜顶面 {001}', rampKey: 'pyramid' }),
       ...pairedWulff(gRoof, 1.06, { hkl: '{011}', familyZh: '单斜坡面 l {011}', rampKey: 'cyan' }),
       ...pairedWulff(gRoofM, 1.06, { hkl: '{011}', familyZh: '单斜坡面 l {011}', rampKey: 'cyan' }),
     ];
     const single = solveConvexHalfSpaces(planes);
 
     // Swallowtail Twin on (100): shift Individual A into x <= 0 by [-0.42, 0, 0] and clip at x <= 0!
-    // Because g001 = [+0.408, 0, +0.913], z_top(x) = (d - 0.408 x)/0.913 rises as x -> -0.9 and dips to minimum at x = 0!
     const swPlanes = planes.map((p) => {
       const offset = dot3(p.normal, [-0.42, 0, 0]);
       return wulffPlane(p.normal, p.distance + offset, { ...p, rampKey: 'twinA' });
@@ -1834,10 +1834,11 @@ const MINERAL_BUILDERS = {
         enabled: true,
         category: 'contact',
         isRareOrGrowth: false,
-        cAxisAngleDeg: 131.8,
+        cAxisAngleDeg: 0.0,
+        notchAngleDeg: 131.8,
         planeLabelEn: '(100) SWALLOWTAIL',
         reentrantTagEn: "SWALLOWTAIL 131°48'",
-        lawZh: "透石膏 (100) 燕尾接触双晶 (Swallowtail Twin · 顶凹角 2(180°-β) = 131°48')",
+        lawZh: "透石膏 (100) 燕尾接触双晶 (A2/a 形态晶胞 c∥(100) · 顶凹角 a∧a' = 2(180°-β) = 131°48')",
         reentrantLabel: "顶部呈现经典 V 字燕尾双晶凹入角 (~131°48')，底部汇聚成箭簇尖端",
         planeOrigin3D: [0, 0, 0.5 * (topSeamZ + botSeamZ)],
         traceDir3D: [0, 0, 1],
@@ -1848,23 +1849,30 @@ const MINERAL_BUILDERS = {
 
   orthoclase() {
     // Orthoclase C2/m (2/m): a = 8.563 Å, b = 12.963 Å, c = 7.190 Å, beta = 116.07 deg
+    // Exact Steno {110} feldspar prism angle = 61°23' / 118°37'; {001} ^ {2̄01} = 80°08'!
     // Carlsbad [001] Penetration Twin: two monoclinic crystals rotated 180 deg around [001], intergrown along (010)!
-    const planes = buildMetricPlanes({
-      angles: [90, 116.07, 90],
-      a: 0.82,
-      b: 0.54,
-      c: 1.12,
-      corner: 0.14,
-      endSlopeA: 0.48,
-      endSlopeB: 0.0,
-      endCut: 0.15,
-      rampSide: 'trap',
-      rampEnd: 'pyrito',
-      rampCap: 'pinacoid',
-      sideLabel: '正长石单斜柱面 {110}/{010}',
-      endLabel: '后斜坡面 {2̄01}',
-      capLabel: '底面 {001}',
-    });
+    const cell = buildLatticeBasis({ a: 8.563, b: 12.963, c: 7.190, betaDeg: 116.07 });
+    const g010 = millerNormal(cell, [0, 1, 0]);
+    const g110 = millerNormal(cell, [1, 1, 0]);
+    const g1m10 = millerNormal(cell, [1, -1, 0]);
+    const g130 = millerNormal(cell, [1, 3, 0]);
+    const g1m30 = millerNormal(cell, [1, -3, 0]);
+    const g001 = millerNormal(cell, [0, 0, 1]);
+    const gm201 = millerNormal(cell, [-2, 0, 1]);
+    const gm111 = millerNormal(cell, [-1, 1, 1]);
+    const gm1m11 = millerNormal(cell, [-1, -1, 1]);
+
+    const planes = [
+      ...pairedWulff(g010, 0.54, { hkl: '{010}', familyZh: '正长石侧板面 b {010}', rampKey: 'trap' }),
+      ...pairedWulff(g110, 0.72, { hkl: '{110}', familyZh: '单斜柱 m {110}', rampKey: 'trap' }),
+      ...pairedWulff(g1m10, 0.72, { hkl: '{110}', familyZh: '单斜柱 m {110}', rampKey: 'trap' }),
+      ...pairedWulff(g130, 0.64, { hkl: '{130}', familyZh: '窄斜柱 z {130}', rampKey: 'trap' }),
+      ...pairedWulff(g1m30, 0.64, { hkl: '{130}', familyZh: '窄斜柱 z {130}', rampKey: 'trap' }),
+      ...pairedWulff(g001, 0.98, { hkl: '{001}', familyZh: '底面解理面 c {001}', rampKey: 'pinacoid' }),
+      ...pairedWulff(gm201, 0.92, { hkl: '{2̄01}', familyZh: '后斜坡面 x {2̄01}', rampKey: 'pyrito' }),
+      ...pairedWulff(gm111, 0.96, { hkl: '{1̄11}', familyZh: '单斜半双锥 o {1̄11}', rampKey: 'pyrito' }),
+      ...pairedWulff(gm1m11, 0.96, { hkl: '{1̄11}', familyZh: '单斜半双锥 o {1̄11}', rampKey: 'pyrito' }),
+    ];
     const single = solveConvexHalfSpaces(planes);
 
     const carlA = transformSolid(single, (p) => add3(p, [0, -0.20, 0.06]), (n) => n, 'twinA');
@@ -1886,6 +1894,7 @@ const MINERAL_BUILDERS = {
         category: 'penetration',
         isRareOrGrowth: false,
         cAxisAngleDeg: 180.0,
+        notchAngleDeg: 127.86,
         planeLabelEn: '[001] CARLSBAD TWIN',
         reentrantTagEn: "STEP NOTCH 127°52'",
         lawZh: '正长石卡斯巴律 [001] 贯穿双晶 (沿 c 轴旋转 180° 并以 (010) 穿插连生)',
@@ -1958,10 +1967,11 @@ const MINERAL_BUILDERS = {
         enabled: true,
         category: 'contact',
         isRareOrGrowth: false,
-        cAxisAngleDeg: 157.8,
+        cAxisAngleDeg: 0.0,
+        notchAngleDeg: 156.9,
         planeLabelEn: '{100} BLADE TWIN',
         reentrantTagEn: 'TRICLINIC CHEVRON',
-        lawZh: '蓝晶石 {100} 板面接触双晶 (三斜斜端面 {001} 跨 (100) 呈人字凹槽)',
+        lawZh: '蓝晶石 {100} 板面接触双晶 (c∥(100) · 三斜端面 {001} 跨接合面呈 ~156°52′ 人字凹槽)',
         reentrantLabel: '两枚三斜扁板晶沿 {100} 解理面连生，端面呈反向倾斜燕尾缺口',
         planeOrigin3D: [0, 0, 0],
         traceDir3D: [0, 0, 1],
@@ -2004,8 +2014,6 @@ const MINERAL_BUILDERS = {
     const rotAng = Math.acos(clamp(dot3(g010, [1, 0, 0]), -1, 1));
     const mapLam = (v) => rotateAroundAxis(v, rotAxis, rotAng);
 
-    // Exaggerate the triclinic (001)^(010) = 86°24' tilt slightly on outer envelope? NO — let's check exact angle first!
-    // Wait: 86.4 deg vs 93.6 deg is a 7.2 deg roof-pitch flip at every lamella seam! Across 5 slabs of width 0.22, let's also keep exact crystallographic normals for {100}/{110}/{001}!
     const outerEnvelope = [
       ...pairedWulff(mapLam(g100), 0.78, { hkl: '{100}', familyZh: '聚片前柱面 {100}', rampKey: 'twinA' }),
       ...pairedWulff(mapLam(g001), 0.96, { hkl: '{001}', familyZh: '聚片阶梯解理面 {001}', rampKey: 'twinA' }),
@@ -2039,10 +2047,11 @@ const MINERAL_BUILDERS = {
         enabled: true,
         category: 'polysynthetic',
         isRareOrGrowth: false,
-        cAxisAngleDeg: 7.2,
+        cAxisAngleDeg: 0.0,
+        notchAngleDeg: 7.2,
         planeLabelEn: '{010} POLYSYNTHETIC',
         reentrantTagEn: "STRIAE 86°24'/93°36'",
-        lawZh: "钠长石律 {010} 聚片五连双晶 (解理夹角 86°24' 交替反折形成平行双晶细纹)",
+        lawZh: "钠长石律 {010} 聚片五连双晶 (c∥(010) · 解理夹角 86°24' 交替反折形成平行双晶细纹)",
         reentrantLabel: "奇数/偶数片晶沿 (010) 镜像交替，{001} 顶面呈现 ~7°12' 锯齿状聚片凹槽",
         planeOrigin3D: [0.5 * slabW, 0, 0],
         traceDir3D: [0, 0, 1],
@@ -2063,7 +2072,9 @@ export function buildMineralMesh(mineralId, { variant = 'single', explode = 0 } 
   if (!base) {
     const built = MINERAL_BUILDERS[key]();
     const rawSolids = mode === 'twin' ? built.twin : built.single;
-    const { solids, mapPoint } = normalizeAssemblyWithTransform(rawSolids, 1.0);
+    const { solids, mapPoint } = normalizeAssemblyWithTransform(rawSolids, 1.0, {
+      preserveOrigin: mode === 'single',
+    });
     const totalFaces = solids.reduce((acc, s) => acc + s.faces.length, 0);
     const sym = symmetrySpecForPointGroup(built.pointGroup, built.systemId, built.axisExtra || {});
 
@@ -2188,7 +2199,7 @@ export function buildSimpleFormMesh(formId) {
   }
 
   const raw = solveConvexHalfSpaces(planes);
-  const solids = normalizeAssembly([raw], 1.0);
+  const solids = normalizeAssembly([raw], 1.0, { preserveOrigin: true });
   const sym = symmetrySpecForPointGroup(pointGroup, systemId);
   const res = {
     solids,
@@ -2274,13 +2285,18 @@ export function buildForgeCombination({
     }
   }
 
-  const solids = normalizeAssembly([raw], 1.0);
+  const solids = normalizeAssembly([raw], 1.0, { preserveOrigin: true });
   const totalFaces = solids[0].faces.length;
   const sym = symmetrySpecForPointGroup(pointGroup, systemId);
 
+  const labelMap = mode === 'hexagonal'
+    ? { '{100}': '{101̄0}', '{111}': '{101̄1}', '{110}': '{0001}', '{211}': '{112̄0}' }
+    : mode === 'tetragonal'
+      ? { '{100}': '{100}', '{111}': '{111}', '{110}': '{110}', '{211}': '{001}' }
+      : { '{100}': '{100}', '{111}': '{111}', '{110}': '{110}', '{211}': '{211}' };
   const activeTags = Object.entries(byForm)
     .filter(([, count]) => count > 0)
-    .map(([k, count]) => `${k}×${count}`);
+    .map(([k, count]) => `${labelMap[k] || k}×${count}`);
   const formulaTag = activeTags.length ? `${activeTags.join(' + ')} (${totalFaces}面)` : `${totalFaces}面`;
 
   return {

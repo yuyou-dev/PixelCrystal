@@ -384,20 +384,20 @@ export const OPTICAL_MATERIALS = Object.freeze({
     opticalActivity: false,
     pleochroism: 'moderate',
     pleoColors: ['#FFA834', '#FFE79E'],
-    noteZh: '斜方晶系二轴正晶 (+)，RI 1.610–1.620 (Δn=0.010, 2V≈66°)，比重 3.53 显著高于黄水晶 (2.65)。',
+    noteZh: '斜方晶系 Pbnm 二轴正晶 (+, 实算 2V=66.7°)，RI 1.610–1.620 (Δn=0.010)，比重 3.53 显著高于黄水晶 (2.65)。',
   }),
   peridot: defineMaterial({
     id: 'peridot',
     nameZh: '橄榄石',
     en: 'Peridot (Forsterite Fo90)',
     className: 'biaxial',
-    indices: [1.654, 1.672, 1.690],
+    indices: [1.654, 1.671, 1.690],
     sg: 3.34,
     dispersionType: 'reference-589.3nm',
     opticalActivity: false,
     pleochroism: 'weak',
     pleoColors: ['#96E02E', '#C6F569'],
-    noteZh: '斜方晶系宝石级橄榄石 (Fo90)，RI 1.654–1.690，强双折射 Δn=0.036 可见刻面棱重影，2V≈88°。',
+    noteZh: '斜方晶系宝石级镁质橄榄石 (Fo90, 二轴正晶 +, 实算 2V=87.7°；Fo88 附近跨越 90°)，RI 1.654–1.690，Δn=0.036。',
   }),
   chrysoberyl: defineMaterial({
     id: 'chrysoberyl',
@@ -410,7 +410,7 @@ export const OPTICAL_MATERIALS = Object.freeze({
     opticalActivity: false,
     pleochroism: 'strong',
     pleoColors: ['#18C98E', '#E04882'],
-    noteZh: '斜方晶系二轴正晶 (+, 2V≈48°)，RI 1.746–1.755，变石具强三色性与变色效应，区别于六方绿柱石。',
+    noteZh: '斜方晶系 Pbnm 二轴正晶 (+, 实算 2V=56.4°，天然 45°–71°)，RI 1.746–1.755，变石具强三色性与变色效应。',
   }),
   tanzanite: defineMaterial({
     id: 'tanzanite',
@@ -423,7 +423,7 @@ export const OPTICAL_MATERIALS = Object.freeze({
     opticalActivity: false,
     pleochroism: 'strong',
     pleoColors: ['#2845FF', '#B34DFF'],
-    noteZh: '斜方晶系 Pnma 二轴正晶 (+, 2V=53°, Hurlbut 1969)，蓝/紫红/绿黄强三色性可与一轴蓝宝石区分。',
+    noteZh: '斜方晶系 Pnma 二轴正晶 (+, 实算 2V=53.3°, Hurlbut 1969)，蓝/紫红/绿黄强三色性可与一轴蓝宝石区分。',
   }),
   orthoclase: defineMaterial({
     id: 'orthoclase',
@@ -436,7 +436,7 @@ export const OPTICAL_MATERIALS = Object.freeze({
     opticalActivity: false,
     pleochroism: 'none',
     pleoColors: ['#F5E8D3', '#F5E8D3'],
-    noteZh: '单斜晶系 C2/m 二轴负晶 (-, 2V≈65°)，低折射率 1.518–1.524 (Δn=0.006)，SG=2.56。',
+    noteZh: '单斜晶系 C2/m 二轴负晶 (-, 实算 2V=70.4°)，低折射率 1.518–1.524 (Δn=0.006)，SG=2.56。',
   }),
   gypsum: defineMaterial({
     id: 'gypsum',
@@ -449,7 +449,7 @@ export const OPTICAL_MATERIALS = Object.freeze({
     opticalActivity: false,
     pleochroism: 'none',
     pleoColors: ['#FAF6F0', '#FAF6F0'],
-    noteZh: '单斜晶系 I2/a 二轴正晶 (+, 2V≈58°)，RI 1.521–1.530，正是 +530 nm 一级红补偿试板的经典矿物。',
+    noteZh: '单斜晶系 2/m 二轴正晶 (+, 实算 2V=56.5°，文献约 58°；形态 A2/a · 结构 I2/a)，+530 nm 一级红试板矿物。',
   }),
   kyanite: defineMaterial({
     id: 'kyanite',
@@ -462,7 +462,7 @@ export const OPTICAL_MATERIALS = Object.freeze({
     opticalActivity: false,
     pleochroism: 'strong',
     pleoColors: ['#1A56E8', '#CFE2FF'],
-    noteZh: '三斜晶系 P1̄ 二轴负晶 (-, 2V≈82°)，RI 1.712–1.728，钴蓝/无色强三色性，摩氏硬度具著名异向性 (4.5 vs 7)。',
+    noteZh: '三斜晶系 P1̄ 二轴负晶 (-, 实算 2V=82.4°)，RI 1.712–1.728，钴蓝/无色强三色性，硬度具异向性 (4.5 vs 7)。',
   }),
   albite: defineMaterial({
     id: 'albite',
@@ -475,7 +475,7 @@ export const OPTICAL_MATERIALS = Object.freeze({
     opticalActivity: false,
     pleochroism: 'none',
     pleoColors: ['#E6ECFA', '#E6ECFA'],
-    noteZh: '三斜晶系 C1̄ 二轴正晶 (+, 2V≈77°)，RI 1.527–1.538，常见 {010} 聚片双晶阶梯条纹。',
+    noteZh: '三斜晶系 C1̄ 二轴正晶 (+, 实算 2V=74.5°，低温典型 75°–77°)，RI 1.527–1.538，常见 {010} 聚片双晶细纹。',
   }),
   flint_prism: defineMaterial({
     id: 'flint_prism',
@@ -732,6 +732,27 @@ export function prismDispersionFan(materialId = 'flint_prism', apexDeg = 60, inc
   const apex = clamp(finite(apexDeg, 60), 15, 85);
   const inc = clamp(finite(incidentDeg, 48), 0, 89);
 
+  if (mat.opaqueMetallic) {
+    const pct = mat.reflectancePct ?? 54.5;
+    return {
+      apexDeg: apex,
+      incidentDeg: inc,
+      criticalDeg: 0,
+      isOpaqueMetallic: true,
+      reflectancePct: pct,
+      rays: PRISM_FAN_BANDS.map((band) => ({
+        nm: band.nm,
+        label: band.label,
+        colorHex: band.colorHex,
+        n: 0,
+        internalDeg: 0,
+        exitDeg: 90,
+        tir: true,
+        isOpaqueMetallic: true,
+      })),
+    };
+  }
+
   const refIndices = refractiveIndicesAt(mat, 589.3);
   const nRef = refIndices[0];
   const criticalDeg = Math.asin(clamp(1 / nRef, 0, 1)) * DEG;
@@ -771,10 +792,22 @@ export function prismDispersionFan(materialId = 'flint_prism', apexDeg = 60, inc
 
 export function snellBenchRay(materialId = 'diamond', incidentDeg = 30, fromInsideCrystal = true) {
   const mat = getMaterial(materialId);
-  const n = refractiveIndicesAt(mat, 589.3)[0];
-  const criticalDeg = Math.asin(clamp(1 / n, 0, 1)) * DEG;
   const inc = clamp(Math.abs(finite(incidentDeg, 30)), 0, 89.9);
   const reflectedDeg = inc;
+  if (mat.opaqueMetallic) {
+    return {
+      n: 0,
+      criticalDeg: 0,
+      incidentDeg: inc,
+      tir: true,
+      refractedDeg: 90,
+      reflectedDeg: Number(reflectedDeg.toFixed(3)),
+      isOpaqueMetallic: true,
+      reflectancePct: mat.reflectancePct ?? 54.5,
+    };
+  }
+  const n = refractiveIndicesAt(mat, 589.3)[0];
+  const criticalDeg = Math.asin(clamp(1 / n, 0, 1)) * DEG;
 
   if (fromInsideCrystal) {
     const sinRef = n * Math.sin(inc * RAD);

@@ -77,18 +77,36 @@ async function runTests() {
     const tanz = optics.opticAxisInfo('tanzanite');
     assert.equal(tanz.sign, 'positive');
     assert.ok(Math.abs(tanz.twoVDeg - 53.3) < 0.5);
+
+    const peri = optics.opticAxisInfo('peridot');
+    assert.equal(peri.className, 'biaxial');
+    assert.equal(peri.sign, 'positive');
+    assert.ok(Math.abs(peri.twoVDeg - 87.70) < 0.15, `Peridot Fo90 2Vz ~ 87.70 deg (got ${peri.twoVDeg})`);
+
+    // Every biaxial noteZh must match exact Fresnel 2V to 0.1 deg
+    for (const id of ['topaz', 'peridot', 'chrysoberyl', 'tanzanite', 'gypsum', 'orthoclase', 'kyanite', 'albite']) {
+      const ax = optics.opticAxisInfo(id);
+      const mat = optics.getMaterial(id);
+      assert.ok(
+        mat.noteZh.includes(`${ax.twoVDeg.toFixed(1)}°`),
+        `${id} noteZh includes exact Fresnel 2V=${ax.twoVDeg.toFixed(1)}° (got: ${mat.noteZh})`,
+      );
+    }
   });
 
-  check('Prism dispersion, Snell critical angle, Calcite walkoff & Refractometer OTL', () => {
+  check('Prism dispersion, Snell critical angle, Pyrite opaque guards, Calcite walkoff & Refractometer OTL', () => {
     const fan = optics.prismDispersionFan('flint_prism', 60, 48);
     assert.ok(fan.rays.length >= 4);
     assert.ok(fan.rays[fan.rays.length - 1].n > fan.rays[0].n, 'Normal dispersion n(blue) > n(red)');
+
+    assert.equal(optics.prismDispersionFan('pyrite', 60, 48).isOpaqueMetallic, true, 'Pyrite prismDispersionFan opaque guard');
+    assert.equal(optics.snellBenchRay('pyrite', 30, true).isOpaqueMetallic, true, 'Pyrite snellBenchRay opaque guard');
 
     const tirCheck = optics.snellBenchRay('diamond', 30, true);
     assert.ok(Math.abs(tirCheck.criticalDeg - 24.44) < 0.5, 'Diamond critical angle ~24.44 deg');
     assert.equal(tirCheck.tir, true);
 
-    const split = optics.calciteDoubleRay('calcite', { thicknessMm: 6, tiltDeg: 45 });
+    const split = optics.calciteDoubleRay('calcite', { thicknessMm: 6, tiltDeg: 44.6 });
     assert.equal(split.isIsotropic, false);
     assert.ok(split.separationMm > 0.3);
 
@@ -137,6 +155,65 @@ async function runTests() {
     }
   });
 
+  check('Strict 24/24 single-crystal Hermann-Mauguin point-group vertex invariance & Steno interfacial angles', () => {
+    const hasMatchingVertex = (verts, target, tol = 1e-5) =>
+      verts.some((v) => Math.hypot(v[0] - target[0], v[1] - target[1], v[2] - target[2]) < tol);
+
+    const rotZ = (ang) => (v) => [
+      v[0] * Math.cos(ang) - v[1] * Math.sin(ang),
+      v[0] * Math.sin(ang) + v[1] * Math.cos(ang),
+      v[2],
+    ];
+    const inv = (v) => [-v[0], -v[1], -v[2]];
+    const mirX = (v) => [-v[0], v[1], v[2]];
+    const mirY = (v) => [v[0], -v[1], v[2]];
+    const mirZ = (v) => [v[0], v[1], -v[2]];
+
+    const pgOps = {
+      'm3̄m': [inv, mirX, mirY, mirZ, (v) => [v[1], v[0], v[2]], (v) => [v[1], v[2], v[0]]],
+      '2/m3̄': [inv, mirX, mirY, mirZ, (v) => [v[1], v[2], v[0]]],
+      '4/mmm': [inv, mirX, mirY, mirZ, rotZ(Math.PI / 2)],
+      '6/mmm': [inv, mirX, mirY, mirZ, rotZ(Math.PI / 3)],
+      '6/m': [inv, mirZ, rotZ(Math.PI / 3)],
+      '32': [rotZ((2 * Math.PI) / 3), (v) => [v[0], -v[1], -v[2]]],
+      '3̄m': [inv, rotZ((2 * Math.PI) / 3), mirX, (v) => [v[0], -v[1], -v[2]]],
+      '3m': [rotZ((2 * Math.PI) / 3), mirX],
+      'mmm': [inv, mirX, mirY, mirZ],
+      '2/m': [inv, mirY, (v) => [-v[0], v[1], -v[2]]],
+      '1̄': [inv],
+    };
+
+    for (const entry of data.MINERAL_CODEX) {
+      const m = meshes.buildMineralMesh(entry.id, { variant: 'single' });
+      const verts = m.solids[0].vertices;
+      const ops = pgOps[m.pointGroup];
+      assert.ok(ops, `Generator ops defined for point group ${m.pointGroup} (${entry.id})`);
+      for (let oi = 0; oi < ops.length; oi++) {
+        for (const v of verts) {
+          assert.ok(
+            hasMatchingVertex(verts, ops[oi](v)),
+            `${entry.id} (${m.pointGroup}) single crystal invariant under generator #${oi}`,
+          );
+        }
+      }
+    }
+
+    // Verify true non-1:1 Steno {110} prism interfacial angles on Peridot, Chrysoberyl & Orthoclase
+    const prismAngleDeg = (id) => {
+      const faces = meshes.buildMineralMesh(id, { variant: 'single' }).solids[0].faces.filter(
+        (f) => f.hkl === '{110}' && f.normal[0] > 0,
+      );
+      assert.equal(faces.length, 2, `${id} has two +x {110} prism faces`);
+      const dot = faces[0].normal[0] * faces[1].normal[0]
+        + faces[0].normal[1] * faces[1].normal[1]
+        + faces[0].normal[2] * faces[1].normal[2];
+      return (Math.acos(Math.max(-1, Math.min(1, dot))) * 180) / Math.PI;
+    };
+    assert.ok(Math.abs(prismAngleDeg('peridot') - 49.98) < 0.2, 'Peridot {110} Steno angle = 49°59\'');
+    assert.ok(Math.abs(prismAngleDeg('chrysoberyl') - 60.44) < 0.2, 'Chrysoberyl {110} Steno angle = 60°26\'');
+    assert.ok(Math.abs(prismAngleDeg('orthoclase') - 61.38) < 0.2, 'Orthoclase {110} Steno angle = 61°23\'');
+  });
+
   check('Audited crystallographic twin angles & Hermann-Mauguin point-group symmetry rules', () => {
     const expectedAngles = {
       diamond: "141°04'",
@@ -159,11 +236,18 @@ async function runTests() {
     for (const [id, angleStr] of Object.entries(expectedAngles)) {
       const mTwin = meshes.buildMineralMesh(id, { variant: 'twin' });
       const codex = data.MINERAL_CODEX.find((m) => m.id === id);
-      assert.ok(
-        mTwin.twinInfo.reentrantTagEn.replace(/′/g, "'").includes(angleStr) || mTwin.twinInfo.lawZh.replace(/′/g, "'").includes(angleStr),
-        `${id} twin mesh carries exact angle ${angleStr}`,
-      );
+      const tagNorm = mTwin.twinInfo.reentrantTagEn.replace(/′/g, "'");
+      const lawNorm = mTwin.twinInfo.lawZh.replace(/′/g, "'");
+      assert.ok(tagNorm.includes(angleStr), `${id} reentrantTagEn carries exact angle ${angleStr} (got ${tagNorm})`);
+      assert.ok(lawNorm.includes(angleStr), `${id} lawZh carries exact angle ${angleStr} (got ${lawNorm})`);
       assert.ok(codex.twinLawZh.replace(/′/g, "'").includes(angleStr), `${id} codex twinLawZh carries exact angle ${angleStr}`);
+    }
+
+    // Twins where c lies in the composition plane must report cAxisAngleDeg === 0
+    for (const id of ['gypsum', 'kyanite', 'albite']) {
+      const mTwin = meshes.buildMineralMesh(id, { variant: 'twin' });
+      assert.equal(mTwin.twinInfo.cAxisAngleDeg, 0, `${id} has c || twin plane (cAxisAngleDeg = 0)`);
+      assert.ok(mTwin.twinInfo.notchAngleDeg > 0, `${id} carries explicit notchAngleDeg`);
     }
 
     // Tourmaline 3m: polar +c/-c, NO inversion center C, NO L2!
@@ -198,7 +282,7 @@ async function runTests() {
     }
   });
 
-  check('All 12 Simple Forms, 6 Forge Blueprints & 8 Detective Cases', () => {
+  check('All 12 Simple Forms, 6 Forge Blueprints (incl. Miller-Bravais tags) & 8 Detective Cases', () => {
     assert.equal(data.SIMPLE_FORMS_12.length, 12);
     for (const f of data.SIMPLE_FORMS_12) {
       assert.ok(meshes.buildSimpleFormMesh(f.id).totalFaces >= 4);
@@ -208,6 +292,11 @@ async function runTests() {
       const built = meshes.buildForgeCombination({ ...ch.targetSlider, mode: ch.mode });
       assert.equal(built.totalFaces, ch.totalFaces);
     }
+    const hexForge = meshes.buildForgeCombination({ mode: 'hexagonal' });
+    assert.ok(hexForge.formulaTag.includes('{101̄0}') && !hexForge.formulaTag.includes('{100}'), 'Hexagonal forge uses 4-index Miller-Bravais');
+    const tetForge = meshes.buildForgeCombination({ d211: 0.9, mode: 'tetragonal' });
+    assert.ok(tetForge.formulaTag.includes('{001}') && !tetForge.formulaTag.includes('{211}'), 'Tetragonal forge maps pinacoid to {001}');
+
     assert.equal(data.DETECTIVE_CASES.length, 8);
     const codexIds = new Set(data.MINERAL_CODEX.map((m) => m.id));
     for (const c of data.DETECTIVE_CASES) {
@@ -234,6 +323,7 @@ async function runTests() {
     const v2Main = fs.readFileSync(path.join(ROOT, 'src', 'main.js'), 'utf8');
     assert.ok(v2Html.includes('ArkPixel12'));
     assert.ok(v2Html.includes('SUVA / 地质大学博士说AI / 苏哇科技'));
+    assert.ok(!v2Html.includes('m3m<'), 'No unbarred m3m in index.html');
     assert.ok(!v2Html.includes('PingFang SC') && !v2Html.includes('Microsoft YaHei'));
     assert.ok(!v2Html.includes('<select') && !v2Main.includes('<select'));
     assert.equal((v2Html + v2Main).match(/[\u{1F300}-\u{1FAFF}]/gu), null);

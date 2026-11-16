@@ -1868,16 +1868,25 @@ export class PixelEngine {
       }
     } else if (cls === 'biaxial') {
       rampKey = 'cube';
-      rx = 0.74;
-      rz = 1.02;
-      ry = 1.28;
+      const halfVInit = (Math.max(18, Math.min(89, twoV || 52)) * 0.5 * Math.PI) / 180;
+      if (sign === 'negative') {
+        // Biaxial (-): Bxa = X (n_alpha, vertical), Bxo = Z (n_gamma, horizontal)
+        rx = 1.26;
+        ry = 0.76;
+        bottomTag = '2 OA · BXA = NP (X)';
+      } else {
+        // Biaxial (+): Bxa = Z (n_gamma, vertical), Bxo = X (n_alpha, horizontal)
+        rx = 0.76;
+        ry = 1.26;
+        bottomTag = '2 OA · BXA = NG (Z)';
+      }
+      rz = 1 / Math.sqrt((Math.cos(halfVInit) ** 2) / (rx ** 2) + (Math.sin(halfVInit) ** 2) / (ry ** 2));
       classBadge = `BIAXIAL (${sign === 'positive' ? '+' : '-'}) 2V=${Math.round(twoV)}°`;
-      bottomTag = '2 OA · NG > NM > NP';
     }
 
     this.drawTag(classBadge, cardX + 12, cardY + 8, COL32.paperCard, COL32.inkBlack, null, false);
 
-    // Build procedural UV ellipsoid mesh (10 lat x 16 lon) for Bayer-dithered rasterizer
+    // Build procedural UV ellipsoid mesh (12 lat x 18 lon) for Bayer-dithered rasterizer
     const eCx = cardX + Math.round(cardW * 0.5);
     const eCy = cardY + 106;
     const eScale = 44;
@@ -1932,17 +1941,19 @@ export class PixelEngine {
       }
     }
 
-    // Draw equatorial circular section ring + Optic Axes (OA / OA1 & OA2)
-    let prevRing = null;
-    for (let j = 0; j <= 32; j++) {
-      const th = (j / 32) * Math.PI * 2;
-      const rp = rotateXYZ([rx * 1.03 * Math.cos(th), 0, rz * 1.03 * Math.sin(th)], rotX, rotY, 0);
-      const sx = eCx + rp[0] * eScale;
-      const sy = eCy - rp[1] * eScale;
-      if (prevRing && rp[2] >= -0.1) {
-        this.drawLine(prevRing[0], prevRing[1], sx, sy, cls === 'isotropic' ? COL32.lime : COL32.pink, 0, 1);
+    // Draw circular section(s) + Optic Axes (OA / OA1 & OA2)
+    if (cls !== 'biaxial') {
+      let prevRing = null;
+      for (let j = 0; j <= 32; j++) {
+        const th = (j / 32) * Math.PI * 2;
+        const rp = rotateXYZ([rx * 1.03 * Math.cos(th), 0, rz * 1.03 * Math.sin(th)], rotX, rotY, 0);
+        const sx = eCx + rp[0] * eScale;
+        const sy = eCy - rp[1] * eScale;
+        if (prevRing && rp[2] >= -0.1) {
+          this.drawLine(prevRing[0], prevRing[1], sx, sy, cls === 'isotropic' ? COL32.lime : COL32.pink, 0, 1);
+        }
+        prevRing = [sx, sy];
       }
-      prevRing = [sx, sy];
     }
 
     if (cls === 'uniaxial') {
@@ -1952,7 +1963,29 @@ export class PixelEngine {
       this.drawSparkle(eCx + pTop[0] * eScale, eCy - pTop[1] * eScale, 2, COL32.lime);
       this.drawTag('OA', eCx + pTop[0] * eScale + 5, eCy - pTop[1] * eScale - 6, COL32.inkBlack, COL32.lime, null, false);
     } else if (cls === 'biaxial') {
-      const halfV = (Math.max(18, Math.min(72, twoV || 52)) * 0.5 * Math.PI) / 180;
+      const halfV = (Math.max(18, Math.min(89, twoV || 52)) * 0.5 * Math.PI) / 180;
+      // Two true circular sections of radius rz perpendicular to OA1 and OA2
+      for (const sgn of [1, -1]) {
+        const e1 = [Math.cos(halfV), -sgn * Math.sin(halfV), 0];
+        const ringCol = sgn > 0 ? COL32.pink : COL32.cyan;
+        let prevCirc = null;
+        for (let j = 0; j <= 32; j++) {
+          const th = (j / 32) * Math.PI * 2;
+          const rad = rz * 1.03;
+          const p3 = [
+            rad * Math.cos(th) * e1[0],
+            rad * Math.cos(th) * e1[1],
+            rad * Math.sin(th),
+          ];
+          const rp = rotateXYZ(p3, rotX, rotY, 0);
+          const sx = eCx + rp[0] * eScale;
+          const sy = eCy - rp[1] * eScale;
+          if (prevCirc && rp[2] >= -0.12) {
+            this.drawLine(prevCirc[0], prevCirc[1], sx, sy, ringCol, 0, 1);
+          }
+          prevCirc = [sx, sy];
+        }
+      }
       const axesBiax = [
         { v: [Math.sin(halfV) * 1.25, Math.cos(halfV) * 1.25, 0], lbl: 'OA1', col: COL32.lime },
         { v: [-Math.sin(halfV) * 1.25, Math.cos(halfV) * 1.25, 0], lbl: 'OA2', col: COL32.cyan },
